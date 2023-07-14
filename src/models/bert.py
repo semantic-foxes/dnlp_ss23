@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Union, Tuple, Callable
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,15 +23,54 @@ class BertSelfAttention(nn.Module):
         # we empirically observe that it yields better performance
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
-    def transform(self, x, linear_layer):
-        # the corresponding linear_layer of k, v, q are used to project the hidden_state (x)
-        bs, seq_len = x.shape[:2]
+    def transform(
+            self,
+            x: torch.Tensor,
+            linear_layer: nn.Module
+    ) -> torch.Tensor:
+        """
+        Projects the input "x" using the provided linear layer. Splits the
+        result into the required number of heads of the desired size (both
+        defined at __init__).
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            The tensor to project. It is supposed to have shape of
+            `[batch_size, sequence_len, hidden_size]`.
+
+        linear_layer : nn.Module
+            The linear layer used to project the input.
+
+        Returns
+        -------
+        proj : torch.Tensor
+            The resulting projection split into the required number of heads.
+            The resulting shape is
+            `[batch_size, num_attention_heads, sequence_len, attention_head_size]`
+            so it is **different** from the original one.
+
+        Notes
+        -------
+        Used to project the hidden state to the key, value and query using the
+        corresponding linear layers from attributes.
+
+        """
+        batch_size, sequence_len = x.shape[:2]
         proj = linear_layer(x)
-        # next, we need to produce multiple heads for the proj
-        # this is done by spliting the hidden state to self.num_attention_heads, each of size self.attention_head_size
-        proj = proj.view(bs, seq_len, self.num_attention_heads, self.attention_head_size)
-        # by proper transpose, we have proj of [bs, num_attention_heads, seq_len, attention_head_size]
+
+        # Split into the required shape.
+        proj = proj.view(
+            batch_size,
+            sequence_len,
+            self.num_attention_heads,
+            self.attention_head_size
+        )
+
+        # Transpose to the stated order of [batch_size, num_attention_heads,
+        # sequence_len, attention_head_size] for the future ease.
         proj = proj.transpose(1, 2)
+
         return proj
 
     def attention(
@@ -42,7 +79,36 @@ class BertSelfAttention(nn.Module):
             query: torch.Tensor,
             value: torch.Tensor,
             attention_mask: torch.Tensor
-    ):
+    ) -> torch.Tensor:
+        """
+        Implementation of the self-attention mechanism.
+
+        Parameters
+        ----------
+        key : torch.Tensor
+            Key tensor.
+
+        query : torch.Tensor
+            Query tensor.
+
+        value : torch.Tensor
+            Value tensor.
+
+        attention_mask : torch.Tensor
+            A binary mask showing which tokens are padding ones
+            and which are "real". Should be "0" for a "real" token
+            and a big negative number for a padding token.
+
+        Returns
+        -------
+        result : torch.Tensor
+
+        Notes
+        -------
+        The shape of each of the `key`, `query` and `value` tensors is supposed
+        to be `[batch_size, num_attention_heads, sequence_len, attention_head_size]`.
+        """
+
         attention = torch.matmul(query, key.transpose(2, 3))
 
         # We do not want any attention for the padded tokens. Since
@@ -59,7 +125,6 @@ class BertSelfAttention(nn.Module):
         result = result.transpose(1, 2)
         result = result.reshape(query.shape[0], query.shape[2], -1)
 
-        # attention = self.dense(attention)
         result = self.dropout(result)
 
         return result
@@ -74,17 +139,20 @@ class BertSelfAttention(nn.Module):
 
         Parameters
         ----------
-        hidden_states : torch.Tensor, shape [batch_size, sequence_len, hidden_state_len]
-            The input hidden states values to transform.
+        hidden_states : torch.Tensor,
+            The input hidden states values to transform. The shape is expected
+            to be `[batch_size, sequence_len, hidden_state_len]`.
 
-        attention_mask : torch.Tensor, shape [batch_size, 1, 1, sequence_len]
-            The mask of real and padded items. Real have 0 in the mask, padded
-            have something else.
+        attention_mask : torch.Tensor
+            A binary mask showing which tokens are padding ones
+            and which are "real". Should be "0" for a "real" token
+            and a big negative number for a padding token.
 
         Returns
         -------
-        attention : torch.Tensor, shape [batch_size, sequence_len, hidden_state_len]
-            The resulting attention tensor.
+        attention : torch.Tensor
+            The resulting attention tensor, with shape
+            `[batch_size, sequence_len, hidden_state_len]`
         """
         key = self.transform(hidden_states, self.key)
         value = self.transform(hidden_states, self.value)
@@ -275,7 +343,7 @@ class BertModel(BertPreTrainedModel):
         # get the extended attention mask for self attention
         # returns extended_attention_mask of [batch_size, 1, 1, seq_len]
         # non-padding tokens with 0 and padding tokens with a large negative number
-        extended_attention_mask: torch.Tensor = get_extended_attention_mask(attention_mask, self.dtype)
+        extended_attention_mask = get_extended_attention_mask(attention_mask, self.dtype)
 
         # pass the hidden states through the encoder layers
         for i, layer_module in enumerate(self.bert_layers):

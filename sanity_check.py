@@ -1,5 +1,5 @@
 import torch
-from src.models.bert import BertModel
+from src.models import BertModel
 sanity_data = torch.load("./sanity_check.data")
 # text_batch = ["hello world", "hello neural network for NLP"]
 # tokenizer here
