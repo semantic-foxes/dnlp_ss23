@@ -15,15 +15,27 @@ class AdamW(Optimizer):
             weight_decay: float = 0.0,
             correct_bias: bool = True,
     ):
+        # Sanity check
         if lr < 0.0:
-            raise ValueError("Invalid learning rate: {} - should be >= 0.0".format(lr))
+            message = f'Invalid learning rate: {lr} - should be >= 0.0'
+            raise ValueError(message)
         if not 0.0 <= betas[0] < 1.0:
-            raise ValueError("Invalid beta parameter: {} - should be in [0.0, 1.0[".format(betas[0]))
+            message = f'Invalid beta parameter: {betas[0]} - should be in [0.0, 1.0]'
+            raise ValueError(message)
         if not 0.0 <= betas[1] < 1.0:
-            raise ValueError("Invalid beta parameter: {} - should be in [0.0, 1.0[".format(betas[1]))
+            message = f'Invalid beta parameter: {betas[1]} - should be in [0.0, 1.0]'
+            raise ValueError(message)
         if not 0.0 <= eps:
-            raise ValueError("Invalid epsilon value: {} - should be >= 0.0".format(eps))
-        defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, correct_bias=correct_bias)
+            message = f'Invalid epsilon value: {eps} - should be >= 0.0'
+            raise ValueError(message)
+
+        defaults = {
+            'lr': lr,
+            'betas': betas,
+            'eps': eps,
+            'weight_decay': weight_decay,
+            'correct_bias': correct_bias
+        }
         super().__init__(params, defaults)
 
     def step(self, closure: Callable = None):
@@ -45,21 +57,31 @@ class AdamW(Optimizer):
                 # Access hyperparameters from the `group` dictionary
                 alpha = group["lr"]
 
-                # Complete the implementation of AdamW here, reading and saving
-                # your state in the `state` dictionary above.
-                # The hyperparameters can be read from the `group` dictionary
-                # (they are lr, betas, eps, weight_decay, as saved in the constructor).
-                #
-                # 1- Update first and second moments of the gradients
-                # 2- Apply bias correction
-                #    (using the "efficient version" given in https://arxiv.org/abs/1412.6980;
-                #     also given in the pseudo-code in the project description).
-                # 3- Update parameters (p.data).
-                # 4- After that main gradient-based update, update again using weight decay
-                #    (incorporating the learning rate again).
+                # First step handling
+                if len(state) == 0:
+                    state['step'] = 0
+                    state['m'] = torch.zeros_like(p.data)
+                    state['v'] = torch.zeros_like(p.data)
 
-                ### TODO
-                raise NotImplementedError
+                # m and v update
+                state['step'] += 1
+                m, v = state['m'], state['v']
+                beta_1, beta_2 = group['betas']
 
+                m = beta_1 * m + (1 - beta_1) * grad
+                v = beta_2 * v + (1 - beta_2) * grad**2
+                state['m'] = m
+                state['v'] = v
+
+                # Parameter update
+                if group['correct_bias']:
+                    m = m / (1 - beta_1 ** state['step'])
+                    v = v / (1 - beta_2 ** state['step'])
+
+                p.data -= alpha * m / (torch.sqrt(v) + group['eps'])
+
+                # Weight decay
+                if group['weight_decay'] != 0:
+                    p.data -= p.data * alpha * group['weight_decay']
 
         return loss

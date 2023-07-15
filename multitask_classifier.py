@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from src.models.bert import BertModel
+from src.utils import seed_everything
 from optimizer import AdamW
 from tqdm import tqdm
 
@@ -15,19 +16,7 @@ from datasets import SentenceClassificationDataset, load_multitask_data
 from evaluation import model_eval_sst, test_model_multitask
 
 
-TQDM_DISABLE=True
-
-# fix the random seed
-def seed_everything(seed=11711):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-
-
+TQDM_DISABLE = True
 BERT_HIDDEN_SIZE = 768
 N_SENTIMENT_CLASSES = 5
 

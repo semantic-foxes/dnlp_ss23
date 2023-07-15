@@ -1,61 +1,49 @@
-import random, numpy as np, argparse
+import random
 from types import SimpleNamespace
+import argparse
 import csv
+
+import numpy as np
+from tqdm import tqdm
+from sklearn.metrics import f1_score, accuracy_score
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import Dataset, DataLoader
-from sklearn.metrics import f1_score, accuracy_score
 
 # change it with respect to the original model
 from tokenizer import BertTokenizer
-from src.models.bert import BertModel
 from optimizer import AdamW
-from tqdm import tqdm
+from src.models.bert import BertModel
+from src.utils import seed_everything
 
+TQDM_DISABLE = False
 
-TQDM_DISABLE=False
-# fix the random seed
-def seed_everything(seed=11711):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
 
 class BertSentimentClassifier(torch.nn.Module):
-    '''
-    This module performs sentiment classification using BERT embeddings on the SST dataset.
-
-    In the SST dataset, there are 5 sentiment categories (from 0 - "negative" to 4 - "positive").
-    Thus, your forward() should return one logit for each of the 5 classes.
-    '''
     def __init__(self, config):
         super(BertSentimentClassifier, self).__init__()
         self.num_labels = config.num_labels
         self.bert = BertModel.from_pretrained('bert-base-uncased', local_files_only=args.local_files_only)
 
-        # Pretrain mode does not require updating bert paramters.
-        for param in self.bert.parameters():
-            if config.option == 'pretrain':
+        # Pretrain mode does not require updating bert parameters.
+        if config.option == 'pretrain':
+            for param in self.bert.parameters():
                 param.requires_grad = False
-            elif config.option == 'finetune':
+        elif config.option == 'finetune':
+            for param in self.bert.parameters():
                 param.requires_grad = True
+        else:
+            raise AttributeError('Incorrect mode for BERT model. Should be'
+                                 'either \'pretrain\' or \'finetune\'.')
 
-        ### TODO
-        raise NotImplementedError
-
+        self.classifier = nn.Linear(config.hidden_size, self.num_labels)
 
     def forward(self, input_ids, attention_mask):
-        '''Takes a batch of sentences and returns logits for sentiment classes'''
-        # The final BERT contextualized embedding is the hidden state of [CLS] token (the first token).
-        # HINT: you should consider what is the appropriate output to return given that
-        # the training loop currently uses F.cross_entropy as the loss function.
-        ### TODO
-        raise NotImplementedError
-
+        bert_output = self.bert(input_ids, attention_mask)['pooler_output']
+        result = self.classifier(bert_output)
+        return result
 
 
 class SentimentDataset(Dataset):
@@ -71,7 +59,6 @@ class SentimentDataset(Dataset):
         return self.dataset[idx]
 
     def pad_data(self, data):
-        
         sents = [x[0] for x in data]
         labels = [x[1] for x in data]
         sent_ids = [x[2] for x in data]
@@ -84,17 +71,18 @@ class SentimentDataset(Dataset):
         return token_ids, attention_mask, labels, sents, sent_ids
 
     def collate_fn(self, all_data):
-        token_ids, attention_mask, labels, sents, sent_ids= self.pad_data(all_data)
+        token_ids, attention_mask, labels, sents, sent_ids = self.pad_data(all_data)
 
         batched_data = {
-                'token_ids': token_ids,
-                'attention_mask': attention_mask,
-                'labels': labels,
-                'sents': sents,
-                'sent_ids': sent_ids
-            }
+            'token_ids': token_ids,
+            'attention_mask': attention_mask,
+            'labels': labels,
+            'sents': sents,
+            'sent_ids': sent_ids
+        }
 
         return batched_data
+
 
 class SentimentTestDataset(Dataset):
     def __init__(self, dataset, args):
@@ -109,7 +97,6 @@ class SentimentTestDataset(Dataset):
         return self.dataset[idx]
 
     def pad_data(self, data):
-        
         sents = [x[0] for x in data]
         sent_ids = [x[1] for x in data]
 
@@ -120,14 +107,14 @@ class SentimentTestDataset(Dataset):
         return token_ids, attention_mask, sents, sent_ids
 
     def collate_fn(self, all_data):
-        token_ids, attention_mask, sents, sent_ids= self.pad_data(all_data)
+        token_ids, attention_mask, sents, sent_ids = self.pad_data(all_data)
 
         batched_data = {
-                'token_ids': token_ids,
-                'attention_mask': attention_mask,
-                'sents': sents,
-                'sent_ids': sent_ids
-            }
+            'token_ids': token_ids,
+            'attention_mask': attention_mask,
+            'sents': sents,
+            'sent_ids': sent_ids
+        }
 
         return batched_data
 
@@ -156,6 +143,7 @@ def load_data(filename, flag='train'):
         return data, len(num_labels)
     else:
         return data
+
 
 # Evaluate the model for accuracy.
 def model_eval(dataloader, model, device):
@@ -326,6 +314,8 @@ def test(args):
             f.write(f"id \t Predicted_Sentiment \n")
             for p, s  in zip(test_sent_ids,test_pred ):
                 f.write(f"{p} , {s} \n")
+
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=11711)
@@ -347,10 +337,10 @@ def get_args():
     args = parser.parse_args()
     return args
 
+
 if __name__ == "__main__":
     args = get_args()
     seed_everything(args.seed)
-    #args.filepath = f'{args.option}-{args.epochs}-{args.lr}.pt'
 
     print('Training Sentiment Classifier on SST...')
     config = SimpleNamespace(

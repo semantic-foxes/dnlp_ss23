@@ -1,7 +1,7 @@
 from typing import Union, Tuple, Dict, Any
 import os
 import json
-from utils import CONFIG_NAME, hf_bucket_url, cached_path, is_remote_url
+from src.utils.utils import CONFIG_NAME, hf_bucket_url, cached_path, is_remote_url
 
 
 class PretrainedConfig(object):

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from base_bert import BertPreTrainedModel
-from utils import *
+from src.utils.utils import *
 
 
 class BertSelfAttention(nn.Module):
