@@ -32,10 +32,11 @@ class BertSentimentClassifier(torch.nn.Module):
     In the SST dataset, there are 5 sentiment categories (from 0 - "negative" to 4 - "positive").
     Thus, your forward() should return one logit for each of the 5 classes.
     '''
-    def __init__(self, config):
+    def __init__(self, config, out_size=5):
         super(BertSentimentClassifier, self).__init__()
         self.num_labels = config.num_labels
         self.bert = BertModel.from_pretrained('bert-base-uncased', local_files_only=args.local_files_only)
+        self.out_dense = nn.Linear(config.hidden_size, out_size)
 
         # Pretrain mode does not require updating bert paramters.
         for param in self.bert.parameters():
@@ -44,8 +45,8 @@ class BertSentimentClassifier(torch.nn.Module):
             elif config.option == 'finetune':
                 param.requires_grad = True
 
-        ### TODO
-        raise NotImplementedError
+        ### TODO - done
+        #raise NotImplementedError
 
 
     def forward(self, input_ids, attention_mask):
@@ -53,8 +54,12 @@ class BertSentimentClassifier(torch.nn.Module):
         # The final BERT contextualized embedding is the hidden state of [CLS] token (the first token).
         # HINT: you should consider what is the appropriate output to return given that
         # the training loop currently uses F.cross_entropy as the loss function.
-        ### TODO
-        raise NotImplementedError
+        ### TODO - done
+        bert_output = self.bert(input_ids, attention_mask)
+        cls_embedding = bert_output['pooler_output']
+        output = self.out_dense(cls_embedding)
+        #raise NotImplementedError
+        return output
 
 
 

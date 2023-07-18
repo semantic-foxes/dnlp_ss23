@@ -43,7 +43,9 @@ class AdamW(Optimizer):
                 state = self.state[p]
 
                 # Access hyperparameters from the `group` dictionary
-                alpha = group["lr"]
+                #alpha = group["lr"]
+                lr, betas, eps, weight_decay, correct_bias = (
+                    group[p] for p in ('lr', 'betas', 'eps', 'weight_decay', 'correct_bias'))
 
                 # Complete the implementation of AdamW here, reading and saving
                 # your state in the `state` dictionary above.
@@ -58,8 +60,22 @@ class AdamW(Optimizer):
                 # 4- After that main gradient-based update, update again using weight decay
                 #    (incorporating the learning rate again).
 
-                ### TODO
-                raise NotImplementedError
+                ### TODO - done
+                if not state:
+                    state['step'] = 0
+                    state['m'], state['v'] = torch.zeros_like(p.data), torch.zeros_like(p.data)
+                state['step'] += 1
+
+                state['m'] = betas[0]*state['m'] + (1 - betas[0]) * grad
+                state['v'] = betas[1]*state['v'] + (1 - betas[1]) * grad**2
+                if correct_bias:
+                    m = state['m'] / (1 - betas[0]**state['step'])
+                    v = state['v'] / (1 - betas[1]**state['step'])
+                else:
+                    m = state['m']
+                    v = state['v']
+                p.data -= lr * (m/(torch.sqrt(v) + eps) + p.data*weight_decay)
+                #raise NotImplementedError
 
 
         return loss
