@@ -109,7 +109,7 @@ class BertSelfAttention(nn.Module):
         to be `[batch_size, num_attention_heads, sequence_len, attention_head_size]`.
         """
 
-        attention = torch.matmul(query, key.transpose(2, 3))
+        attention = torch.matmul(query, key.transpose(-1, -2))
 
         # We do not want any attention for the padded tokens. Since
         # the mask is 0 for a "real" token and a large negative number for
