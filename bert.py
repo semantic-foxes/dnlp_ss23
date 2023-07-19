@@ -127,8 +127,7 @@ class BertLayer(nn.Module):
     4. a add-norm that takes the input and output of the feed forward layer
     """
     ### TODO - done
-    # Are we supposed to apply the same ln_layer twice?
-    attn = self.self_attention(hidden_states, attention_mask) #What should be the input here? (!)
+    attn = self.self_attention(hidden_states, attention_mask)
     normalized_1 = self.add_norm(
       hidden_states,
       attn,
