@@ -1,3 +1,4 @@
+import os
 import random
 from types import SimpleNamespace
 import argparse
@@ -187,6 +188,10 @@ def generate_predictions(
 
 
 def save_model(model, optimizer, config, filepath):
+
+    directory = os.path.dirname(filepath)
+    os.makedirs(directory, exist_ok=True)
+
     logger.info(f'Saving the model to {filepath}.')
 
     save_info = {
