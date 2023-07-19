@@ -73,7 +73,7 @@ class AdamW(Optimizer):
                 state['m'] = m
                 state['v'] = v
 
-                # Parameter update # TODO ? maybe here
+                # Parameter update
                 if group['correct_bias']:
                     m = m / (1 - beta_1 ** state['step'])
                     v = v / (1 - beta_2 ** state['step'])

@@ -1,0 +1,23 @@
+seed: 11711
+use_cuda: True
+
+data:
+  dataset:
+    train_path: 'data/ids-sst-train.csv'
+    val_path: 'data/ids-sst-dev.csv'
+    test_path: 'data/ids-sst-test-student.csv'
+
+  dataloader:
+    batch_size: 64
+    num_workers: 1
+
+bert_model:
+  hidden_size: 768
+  dropout_prob: 0.1
+  mode: 'finetune' # 'pretrain' or 'finetune'
+  local_files_only: False
+
+train:
+  n_epochs: 10
+  lr: 0.00001
+  checkpoint_path: 'checkpoints/sst_classifier.pt'
