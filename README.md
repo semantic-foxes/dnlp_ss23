@@ -3,7 +3,7 @@ Team: G04	Semantic Foxes
 
 ## Setup instructions
 
-* Follow `setup.sh` to properly setup a conda environment and install dependencies.
+* Follow `setup_gwdg.sh` to properly setup a conda environment and install dependencies.
 
 ### Acknowledgement
 
