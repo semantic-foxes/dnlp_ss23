@@ -44,8 +44,7 @@ class BertSentimentClassifier(torch.nn.Module):
             elif config.option == 'finetune':
                 param.requires_grad = True
 
-        ### TODO
-        raise NotImplementedError
+        self.linear = torch.nn.Linear(config.hidden_size, self.num_labels)
 
 
     def forward(self, input_ids, attention_mask):
@@ -53,8 +52,15 @@ class BertSentimentClassifier(torch.nn.Module):
         # The final BERT contextualized embedding is the hidden state of [CLS] token (the first token).
         # HINT: you should consider what is the appropriate output to return given that
         # the training loop currently uses F.cross_entropy as the loss function.
-        ### TODO
-        raise NotImplementedError
+
+        # get the embedding for each input token
+        output = self.bert(input_ids, attention_mask)
+        pooler_output = output["pooler_output"]
+        x = self.linear(pooler_output)
+
+        # no activation function, since cross-entropy does log-exp itself
+
+        return x
 
 
 
