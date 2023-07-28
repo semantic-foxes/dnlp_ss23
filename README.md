@@ -17,7 +17,7 @@ Parts of the code are from the [`transformers`](https://github.com/huggingface/t
 Parts of the scripts and code were altered by [Jan Philip Wahle](https://jpwahle.com/) and [Terry Ruas](https://terryruas.com/).
 
 ## Part 1: minBERT
-Getting access to GPU
+Getting access to GPU at GWDG by
 
 ```
 srun --pty -p grete:interactive  -G V100:1 /bin/bash
@@ -25,8 +25,14 @@ srun --pty -p grete:interactive  -G V100:1 /bin/bash
 
 Commands for training the model
 ```
-python classifier.py --option finetune --lr 1e-5 --hidden_dropout_prob=0.1 --local_files_only --use_gpu 
+python classifier.py --option finetune --lr 1e-5 --local_files_only --use_gpu 
 ```
+dev acc :: 0.513
+
 ```
-python classifier.py --option pretrain --lr 1e-3 --hidden_dropout_prob=0.1 --local_files_only --use_gpu 
+python classifier.py --option pretrain --lr 1e-3 --local_files_only --use_gpu 
 ```
+dev acc :: 0.397
+
+
+As was clarified by tutors we have not changed any parameters (i.e --hidden_dropout_prob=0.1)
