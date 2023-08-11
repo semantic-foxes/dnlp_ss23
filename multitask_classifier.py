@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 from src.models.bert import BertModel
 from src.utils import seed_everything
-from optimizer import AdamW
+from adam_w import AdamW
 from tqdm import tqdm
 
 from datasets import SentenceClassificationDataset, load_multitask_data

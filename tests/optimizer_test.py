@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from optimizer import AdamW
+from src.optim import AdamW
 
 seed = 0
 
@@ -26,7 +26,7 @@ def test_optimizer(opt_class) -> torch.Tensor:
     return model.weight.detach()
 
 
-ref = torch.tensor(np.load("optimizer_test.npy"))
+ref = torch.tensor(np.load("./tests/data/optimizer_test.npy"))
 actual = test_optimizer(AdamW)
 print(ref)
 print(actual)

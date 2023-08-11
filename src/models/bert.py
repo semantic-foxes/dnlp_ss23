@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from base_bert import BertPreTrainedModel
+from src.models.base_bert import BertPreTrainedModel
 from src.utils.utils import *
 
 

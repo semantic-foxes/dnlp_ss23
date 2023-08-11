@@ -1,3 +1,4 @@
+import os
 from typing import Union
 
 import torch
@@ -46,3 +47,40 @@ def get_device(obj: Union[nn.Module, torch.Tensor]):
             raise error
 
     return device
+
+
+def save_state(
+        model: nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        filepath: str
+):
+    """
+    Saves the model state, the optimizer state and the config
+    at the given path. The path is expected to have the files itself as well.
+
+    Parameters
+    ----------
+    model : nn.Module
+    optimizer : torch.optim.Optimizer
+    config : dict
+    filepath : str
+        Path to the saved file. Should specify the file as well.
+    """
+
+    directory = os.path.dirname(filepath)
+    os.makedirs(directory, exist_ok=True)
+
+    logger.info(f'Saving the model to {filepath}.')
+
+    save_info = {
+        'model': model.state_dict(),
+        'optim': optimizer.state_dict(),
+        'config': config
+    }
+
+    torch.save(save_info, filepath)
+    logger.info(f'Successfully saved the model, optimizer '
+                f'and config to {filepath}.')
+
+
