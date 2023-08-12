@@ -49,7 +49,6 @@ if __name__ == "__main__":
 
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
-    print(device)
 
     # Create datasets
     train_data = pd.read_csv(
@@ -60,8 +59,7 @@ if __name__ == "__main__":
     train_data.index = train_data['id']
     train_data.drop('id', axis=1, inplace=True)
     train_data['sentence'] = train_data['sentence'].str.lower().str.strip()
-    train_data['label'] = train_data['sentiment'].astype(int)
-    train_data.drop('sentiment', axis=1, inplace=True)
+    train_data['sentiment'] = train_data['sentiment'].astype(int)
 
     val_data = pd.read_csv(
         config_data['dataset']['val_path'],
@@ -71,11 +69,10 @@ if __name__ == "__main__":
     val_data.index = val_data['id']
     val_data.drop('id', axis=1, inplace=True)
     val_data['sentence'] = val_data['sentence'].str.lower().str.strip()
-    val_data['label'] = val_data['sentiment'].astype(int)
-    val_data.drop('sentiment', axis=1, inplace=True)
+    val_data['sentiment'] = val_data['sentiment'].astype(int)
 
-    train_dataset = SSTDataset(train_data, return_labels=True)
-    val_dataset = SSTDataset(val_data, return_labels=True)
+    train_dataset = SSTDataset(train_data, return_targets=True)
+    val_dataset = SSTDataset(val_data, return_targets=True)
 
     train_dataloader = DataLoader(
         train_dataset,

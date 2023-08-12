@@ -49,21 +49,21 @@ def evaluate_model(
 
     for batch in tqdm(eval_dataloader,
                       desc=f'Evaluating on {dataloader_message}', leave=False):
-        ids, mask, labels, = \
-            batch['token_ids'], batch['attention_mask'], batch['labels']
+        ids, mask, targets, = \
+            batch['token_ids'], batch['attention_masks'], batch['targets']
 
         ids = ids.to(device)
         mask = mask.to(device)
-        labels = labels.to(device)
+        targets = targets.to(device)
 
         logits = model(ids, mask)
 
         if criterion is not None:
-            loss = criterion(logits, labels)
+            loss = criterion(logits, targets)
             running_loss += loss.item() * len(logits)
 
         predictions = np.argmax(logits.detach().cpu().numpy(), axis=1).flatten()
-        running_metric += metric(predictions, labels.cpu().numpy()) * len(predictions)
+        running_metric += metric(predictions, targets.cpu().numpy()) * len(predictions)
 
     if criterion:
         return running_loss, running_metric
@@ -101,7 +101,7 @@ def generate_predictions(
                         desc=f'Making predictions on {dataloader_message}')
 
     for i, batch in enumerate(progress_bar):
-        ids, attention_masks = batch['token_ids'], batch['attention_mask']
+        ids, attention_masks = batch['token_ids'], batch['attention_masks']
 
         ids = ids.to(device)
         attention_masks = attention_masks.to(device)
@@ -142,16 +142,16 @@ def train_one_epoch(
         pbar = train_dataloader
 
     for batch in pbar:
-        ids, attention_masks, labels = \
-            batch['token_ids'], batch['attention_mask'], batch['labels']
+        ids, attention_masks, targets = \
+            batch['token_ids'], batch['attention_masks'], batch['targets']
 
         ids = ids.to(device)
         attention_masks = attention_masks.to(device)
-        labels = labels.to(device)
+        targets = targets.to(device)
 
         optimizer.zero_grad()
         logits = model(ids, attention_masks)
-        loss = criterion(logits, labels.reshape(-1)).sum()
+        loss = criterion(logits, targets.reshape(-1)).sum()
         loss.backward()
         optimizer.step()
 
