@@ -121,6 +121,7 @@ class BertSelfAttention(nn.Module):
         attention /= (self.attention_head_size ** 0.5)
 
         attention = F.softmax(attention, dim=-1)
+        attention = self.dropout(attention)
         result = torch.matmul(attention, value)
         result = result.transpose(1, 2)
         result = result.reshape(query.shape[0], query.shape[2], -1)
@@ -216,11 +217,13 @@ class BertLayer(nn.Module):
         result : torch.Tensor
             The result of the add_norm layer.
         """
+        x = dense_layer(previous_layer_output)
+        x = dropout_layer(x)
 
-        residual_connection = \
-            dense_layer(previous_layer_output) + previous_layer_input
+        # residual connection
+        x += previous_layer_input
 
-        result = dropout_layer(layer_norm_layer(residual_connection))
+        result = layer_norm_layer(x)
         return result
 
     def forward(
@@ -270,7 +273,8 @@ class BertLayer(nn.Module):
             self.attention_layer_norm
         )
 
-        processed_attention = self.interm_af(self.interm_dense(normalized_attention))
+        processed_attention = self.interm_dense(normalized_attention)
+        processed_attention = self.interm_af(processed_attention)
 
         result = self.add_norm(
             normalized_attention,

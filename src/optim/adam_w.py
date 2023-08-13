@@ -73,15 +73,13 @@ class AdamW(Optimizer):
                 state['m'] = m
                 state['v'] = v
 
-                # Parameter update
+                a = alpha
                 if group['correct_bias']:
-                    m = m / (1 - beta_1 ** state['step'])
-                    v = v / (1 - beta_2 ** state['step'])
+                    a *= torch.sqrt(1 - beta_2 ** state['step']) / (1 - beta_1 ** state['step'])
 
-                p.data.add_(-alpha * m / (torch.sqrt(v) + group['eps']))
-
+                # Parameter update
+                p.data.add_(-a * m / (torch.sqrt(v) + group['eps']))
                 # Weight decay
-                if group['weight_decay'] != 0:
-                    p.data.add_(-p.data * alpha * group['weight_decay'])
+                p.data.add_(-p.data * alpha * group['weight_decay'])
 
         return loss
