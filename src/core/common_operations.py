@@ -66,9 +66,10 @@ def evaluate_model(
         running_metric += metric(predictions, targets.cpu().numpy()) * len(predictions)
 
     if criterion:
-        return running_loss, running_metric
+        return running_loss / len(eval_dataloader.dataset), \
+            running_metric / len(eval_dataloader.dataset)
     else:
-        return running_metric
+        return running_metric / len(eval_dataloader.dataset)
 
 
 @torch.no_grad()
@@ -290,7 +291,7 @@ def train_validation_loop(
                 'Val loss': val_loss,
                 'Val metric': val_metric
             }
-        logger.info(f'Finished validation epoch {current_epoch}, '
+        logger.info(f'Finished validating epoch {current_epoch}, '
                     f'val loss: {val_loss:.3f}, val metric: {val_metric:.3f}.')
 
         # Upload to watcher
@@ -309,3 +310,6 @@ def train_validation_loop(
     logger.info(f'Finished training and validation the model.')
 
     return train_loss_array, val_loss_array, train_metric_array, val_metric_array
+
+
+

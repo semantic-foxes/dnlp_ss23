@@ -1,17 +1,29 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 from tokenizer import BertTokenizer
+
+
+tqdm.pandas()
 
 
 class SSTDataset(Dataset):
     def __init__(
             self,
-            dataset: pd.DataFrame,
+            dataset_path: str,
             return_targets: bool = True,
             local_only: bool = False
     ):
+        dataset = pd.read_csv(dataset_path, index_col=0, delimiter='\t')
+
+        # Data handling
+        dataset.index = dataset['id']
+        dataset.drop('id', axis=1, inplace=True)
+        dataset['sentence'] = dataset['sentence'].str.lower().str.strip()
+        dataset['sentiment'] = dataset['sentiment'].astype(int)
+
         self.dataset = dataset['sentence']
         self.ids = list(dataset.index)
 
@@ -23,6 +35,8 @@ class SSTDataset(Dataset):
             pretrained_model_name_or_path='bert-base-uncased',
             local_files_only=local_only
         )
+
+        self.task = 'sentiment'
 
     def __len__(self):
         return len(self.dataset)
@@ -58,28 +72,49 @@ class SSTDataset(Dataset):
 class SentenceSimilarityDataset(Dataset):
     def __init__(
             self,
-            dataset: pd.DataFrame,
+            dataset_path: str,
             binary_task: bool = True,
             return_targets: bool = True,
             local_only: bool = False,
     ):
+        dataset = pd.read_csv(dataset_path, index_col=0, delimiter='\t')
+
+        # Data handling
+        dataset.index = dataset['id']
+        dataset.drop('id', axis=1, inplace=True)
+        dataset['sentence'] = dataset['sentence'] \
+            .progress_apply(self.preprocess_string)
+
         self.dataset = dataset
         self.dataset = dataset[['sentence1', 'sentence2']]
         self.ids = list(dataset.index)
 
         self.binary_task = binary_task
-        self.return_targets = return_targets
+        if binary_task:
+            self.task = 'paraphrase_classifier'
+        else:
+            self.task = 'paraphrase_regressor'
 
+        self.return_targets = return_targets
         if return_targets:
             if self.binary_task:
-                self.targets = dataset['is_duplicate']
+                self.targets = dataset['is_duplicate'].astype(float).astype(int)
             else:
-                self.targets = dataset['similarity']
+                self.targets = dataset['similarity'].astype(float)
 
         self.tokenizer = BertTokenizer.from_pretrained(
             pretrained_model_name_or_path='bert-base-uncased',
             local_files_only=local_only
         )
+
+    @staticmethod
+    def preprocess_string(s):
+        return ' '.join(s.lower()
+                        .replace('.', ' .')
+                        .replace('?', ' ?')
+                        .replace(',', ' ,')
+                        .replace('\'', ' \'')
+                        .split())
 
     def __len__(self):
         return len(self.dataset)
@@ -117,13 +152,6 @@ class SentenceSimilarityDataset(Dataset):
         attention_masks_2 = torch.LongTensor(encodings_2['attention_mask'])
         token_type_ids_2 = torch.LongTensor(encodings_2['token_type_ids'])
 
-        # TODO: might need to cast for the binary task to DoubleTensor
-
-        # if self.binary_task:
-        #     targets = torch.DoubleTensor(targets)
-        # else:
-        #     targets = torch.LongTensor(targets)
-
         result = {
             'token_ids_1': token_ids_1,
             'token_type_ids_1': token_type_ids_1,
@@ -134,6 +162,9 @@ class SentenceSimilarityDataset(Dataset):
         }
 
         if self.return_targets:
-            result['targets'] = torch.LongTensor(targets)
+            if self.binary_task:
+                result['targets'] = torch.LongTensor(targets)
+            else:
+                result['targets'] = torch.DoubleTensor(targets)
 
         return result

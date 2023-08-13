@@ -7,7 +7,7 @@ import yaml
 from sklearn.metrics import accuracy_score
 
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 from src.core import train_validation_loop
 from src.utils import seed_everything, logger, generate_device
@@ -50,29 +50,14 @@ if __name__ == "__main__":
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
 
-    # Create datasets
-    train_data = pd.read_csv(
-        config_data['dataset']['train_path'],
-        index_col=0,
-        delimiter='\t'
+    train_dataset = SSTDataset(
+        config_data['sst_dataset']['train_path'],
+        return_targets=True
     )
-    train_data.index = train_data['id']
-    train_data.drop('id', axis=1, inplace=True)
-    train_data['sentence'] = train_data['sentence'].str.lower().str.strip()
-    train_data['sentiment'] = train_data['sentiment'].astype(int)
-
-    val_data = pd.read_csv(
-        config_data['dataset']['val_path'],
-        index_col=0,
-        delimiter='\t'
+    val_dataset = SSTDataset(
+        config_data['sst_dataset']['val_path'],
+        return_targets=True
     )
-    val_data.index = val_data['id']
-    val_data.drop('id', axis=1, inplace=True)
-    val_data['sentence'] = val_data['sentence'].str.lower().str.strip()
-    val_data['sentiment'] = val_data['sentiment'].astype(int)
-
-    train_dataset = SSTDataset(train_data, return_targets=True)
-    val_dataset = SSTDataset(val_data, return_targets=True)
 
     train_dataloader = DataLoader(
         train_dataset,

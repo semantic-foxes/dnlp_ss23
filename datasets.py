@@ -134,19 +134,6 @@ class SentencePairTestDataset(Dataset):
 
 
 def load_multitask_test_data():
-    paraphrase_filename = f'data/quora-test.csv'
-    sentiment_filename = f'data/ids-sst-test.txt'
-    similarity_filename = f'data/sts-test.csv'
-
-    sentiment_data = []
-
-    with open(sentiment_filename, 'r', encoding='utf-8') as fp:
-        for record in csv.DictReader(fp,delimiter = '\t'):
-            sent = record['sentence'].lower().strip()
-            sentiment_data.append(sent)
-
-    print(f"Loaded {len(sentiment_data)} test examples from {sentiment_filename}")
-
     paraphrase_data = []
     with open(paraphrase_filename, 'r', encoding='utf-8') as fp:
         for record in csv.DictReader(fp,delimiter = '\t'):
@@ -172,26 +159,6 @@ def load_multitask_test_data():
 
 
 def load_multitask_data(sentiment_filename,paraphrase_filename,similarity_filename,split='train'):
-    sentiment_data = []
-    num_labels = {}
-    if split == 'test':
-        with open(sentiment_filename, 'r', encoding='utf-8') as fp:
-            for record in csv.DictReader(fp,delimiter = '\t'):
-                sent = record['sentence'].lower().strip()
-                sent_id = record['id'].lower().strip()
-                sentiment_data.append((sent,sent_id))
-    else:
-        with open(sentiment_filename, 'r', encoding='utf-8') as fp:
-            for record in csv.DictReader(fp,delimiter = '\t'):
-                sent = record['sentence'].lower().strip()
-                sent_id = record['id'].lower().strip()
-                label = int(record['sentiment'].strip())
-                if label not in num_labels:
-                    num_labels[label] = len(num_labels)
-                sentiment_data.append((sent, label,sent_id))
-
-    print(f"Loaded {len(sentiment_data)} {split} examples from {sentiment_filename}")
-
     paraphrase_data = []
     if split == 'test':
         with open(paraphrase_filename, 'r', encoding='utf-8') as fp:

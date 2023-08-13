@@ -2,10 +2,18 @@ seed: 11711
 use_cuda: True
 
 data:
-  dataset:
+  sst_dataset:
     train_path: 'data/ids-sst-train.csv'
     val_path: 'data/ids-sst-dev.csv'
     test_path: 'data/ids-sst-test-student.csv'
+  quora_dataset:
+    train_path: 'data/quora-train.csv'
+    val_path: 'data/quora-dev.csv'
+    test_path: 'data/quora-test-student.csv'
+  sts_dataset:
+    train_path: 'data/sts-train.csv'
+    val_path: 'data/sts-dev.csv'
+    test_path: 'data/sts-test-student.csv'
 
   dataloader:
     batch_size: 64
