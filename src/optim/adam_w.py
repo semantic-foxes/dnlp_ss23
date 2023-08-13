@@ -1,3 +1,4 @@
+import math
 from typing import Callable, Iterable, Tuple
 
 import torch
@@ -75,7 +76,7 @@ class AdamW(Optimizer):
 
                 a = alpha
                 if group['correct_bias']:
-                    a *= torch.sqrt(1 - beta_2 ** state['step']) / (1 - beta_1 ** state['step'])
+                    a *= math.sqrt(1 - beta_2 ** state['step']) / (1 - beta_1 ** state['step'])
 
                 # Parameter update
                 p.data.add_(-a * m / (torch.sqrt(v) + group['eps']))

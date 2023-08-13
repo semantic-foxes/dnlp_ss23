@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 import argparse
 
-import pandas as pd
 import yaml
 
 from sklearn.metrics import accuracy_score
