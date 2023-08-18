@@ -1,5 +1,5 @@
 from tokenizer import BertTokenizer
-from bert import BertModel
+from src.models import BertModel
 
 if __name__ == "__main__":
     # Download files
