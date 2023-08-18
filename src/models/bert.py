@@ -23,11 +23,7 @@ class BertSelfAttention(nn.Module):
         # we empirically observe that it yields better performance
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
-    def transform(
-            self,
-            x: torch.Tensor,
-            linear_layer: nn.Module
-    ) -> torch.Tensor:
+    def transform(self, x: torch.Tensor, linear_layer: nn.Module) -> torch.Tensor:
         """
         Projects the input "x" using the provided linear layer. Splits the
         result into the required number of heads of the desired size (both
@@ -61,10 +57,7 @@ class BertSelfAttention(nn.Module):
 
         # Split into the required shape.
         proj = proj.view(
-            batch_size,
-            sequence_len,
-            self.num_attention_heads,
-            self.attention_head_size
+            batch_size, sequence_len, self.num_attention_heads, self.attention_head_size
         )
 
         # Transpose to the stated order of [batch_size, num_attention_heads,
@@ -74,11 +67,11 @@ class BertSelfAttention(nn.Module):
         return proj
 
     def attention(
-            self,
-            key: torch.Tensor,
-            query: torch.Tensor,
-            value: torch.Tensor,
-            attention_mask: torch.Tensor
+        self,
+        key: torch.Tensor,
+        query: torch.Tensor,
+        value: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> torch.Tensor:
         """
         Implementation of the self-attention mechanism.
@@ -118,7 +111,7 @@ class BertSelfAttention(nn.Module):
         # _replace_ with a number.
 
         attention += attention_mask
-        attention /= (self.attention_head_size ** 0.5)
+        attention /= self.attention_head_size**0.5
 
         attention = F.softmax(attention, dim=-1)
         result = torch.matmul(attention, value)
@@ -128,9 +121,7 @@ class BertSelfAttention(nn.Module):
         return result
 
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: torch.Tensor
+        self, hidden_states: torch.Tensor, attention_mask: torch.Tensor
     ) -> torch.Tensor:
         """
         Feedforward of a Bert layer.
@@ -170,7 +161,9 @@ class BertLayer(nn.Module):
 
         # add-norm
         self.attention_dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.attention_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.attention_layer_norm = nn.LayerNorm(
+            config.hidden_size, eps=config.layer_norm_eps
+        )
         self.attention_dropout = nn.Dropout(config.hidden_dropout_prob)
 
         # feed forward
@@ -179,16 +172,18 @@ class BertLayer(nn.Module):
 
         # another add-norm
         self.out_dense = nn.Linear(config.intermediate_size, config.hidden_size)
-        self.out_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.out_layer_norm = nn.LayerNorm(
+            config.hidden_size, eps=config.layer_norm_eps
+        )
         self.out_dropout = nn.Dropout(config.hidden_dropout_prob)
 
     @staticmethod
     def add_norm(
-            previous_layer_input: torch.Tensor,
-            previous_layer_output: torch.Tensor,
-            dense_layer: nn.Module,
-            dropout_layer: nn.Module,
-            layer_norm_layer: nn.Module
+        previous_layer_input: torch.Tensor,
+        previous_layer_output: torch.Tensor,
+        dense_layer: nn.Module,
+        dropout_layer: nn.Module,
+        layer_norm_layer: nn.Module,
     ):
         """
         An add and normalize operation used in BERT implementation.
@@ -217,17 +212,12 @@ class BertLayer(nn.Module):
             The result of the add_norm layer.
         """
 
-        residual_connection = \
-            dense_layer(previous_layer_output) + previous_layer_input
+        residual_connection = dense_layer(previous_layer_output) + previous_layer_input
 
         result = dropout_layer(layer_norm_layer(residual_connection))
         return result
 
-    def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: torch.Tensor
-    ):
+    def forward(self, hidden_states: torch.Tensor, attention_mask: torch.Tensor):
         """
         An implementation of a forward pass of a single BERT layer.
 
@@ -267,7 +257,7 @@ class BertLayer(nn.Module):
             attention,
             self.attention_dense,
             self.attention_dropout,
-            self.attention_layer_norm
+            self.attention_layer_norm,
         )
 
         processed_attention = self.interm_af(self.interm_dense(normalized_attention))
@@ -277,10 +267,11 @@ class BertLayer(nn.Module):
             processed_attention,
             self.out_dense,
             self.out_dropout,
-            self.out_layer_norm
+            self.out_layer_norm,
         )
 
         return result
+
 
 class BertModel(BertPreTrainedModel):
     """
@@ -296,17 +287,27 @@ class BertModel(BertPreTrainedModel):
         self.config = config
 
         # embedding
-        self.word_embedding = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
-        self.pos_embedding = nn.Embedding(config.max_position_embeddings, config.hidden_size)
-        self.tk_type_embedding = nn.Embedding(config.type_vocab_size, config.hidden_size)
-        self.embed_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.word_embedding = nn.Embedding(
+            config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id
+        )
+        self.pos_embedding = nn.Embedding(
+            config.max_position_embeddings, config.hidden_size
+        )
+        self.tk_type_embedding = nn.Embedding(
+            config.type_vocab_size, config.hidden_size
+        )
+        self.embed_layer_norm = nn.LayerNorm(
+            config.hidden_size, eps=config.layer_norm_eps
+        )
         self.embed_dropout = nn.Dropout(config.hidden_dropout_prob)
         # position_ids (1, len position emb) is a constant, register to buffer
         position_ids = torch.arange(config.max_position_embeddings).unsqueeze(0)
-        self.register_buffer('position_ids', position_ids)
+        self.register_buffer("position_ids", position_ids)
 
         # bert encoder
-        self.bert_layers = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
+        self.bert_layers = nn.ModuleList(
+            [BertLayer(config) for _ in range(config.num_hidden_layers)]
+        )
 
         # for [CLS] token
         self.pooler_dense = nn.Linear(config.hidden_size, config.hidden_size)
@@ -327,11 +328,15 @@ class BertModel(BertPreTrainedModel):
         pos_embeds = self.pos_embedding(pos_ids)
 
         # Get token type ids, since we are not consider token type, just a placeholder.
-        tk_type_ids = torch.zeros(input_shape, dtype=torch.long, device=input_ids.device)
+        tk_type_ids = torch.zeros(
+            input_shape, dtype=torch.long, device=input_ids.device
+        )
         tk_type_embeds = self.tk_type_embedding(tk_type_ids)
 
         # Add three embeddings together; then apply embed_layer_norm and dropout and return.
-        return self.embed_dropout(self.embed_layer_norm(tk_type_embeds + pos_embeds + inputs_embeds))
+        return self.embed_dropout(
+            self.embed_layer_norm(tk_type_embeds + pos_embeds + inputs_embeds)
+        )
 
     def encode(self, hidden_states, attention_mask):
         """
@@ -341,7 +346,9 @@ class BertModel(BertPreTrainedModel):
         # get the extended attention mask for self attention
         # returns extended_attention_mask of [batch_size, 1, 1, seq_len]
         # non-padding tokens with 0 and padding tokens with a large negative number
-        extended_attention_mask = get_extended_attention_mask(attention_mask, self.dtype)
+        extended_attention_mask = get_extended_attention_mask(
+            attention_mask, self.dtype
+        )
 
         # pass the hidden states through the encoder layers
         for i, layer_module in enumerate(self.bert_layers):
@@ -366,4 +373,4 @@ class BertModel(BertPreTrainedModel):
         first_tk = self.pooler_dense(first_tk)
         first_tk = self.pooler_af(first_tk)
 
-        return {'last_hidden_state': sequence_output, 'pooler_output': first_tk}
+        return {"last_hidden_state": sequence_output, "pooler_output": first_tk}

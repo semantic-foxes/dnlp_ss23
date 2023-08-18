@@ -50,6 +50,7 @@ The project is developed in Python 3.8.
 pip3 install -r requirements.txt
 ```
 We recommend using a virtual environment like `conda` or `venv`.
+Also, "black" formatter was used.
 
 ## Configuration
 The `config.yaml` file streamlines workflow by centralizing the model's parameters.

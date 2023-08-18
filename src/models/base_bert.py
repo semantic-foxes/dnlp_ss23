@@ -22,7 +22,7 @@ class BertPreTrainedModel(nn.Module):
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
-        """ Initialize the weights """
+        """Initialize the weights"""
         if isinstance(module, (nn.Linear, nn.Embedding)):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
@@ -38,7 +38,12 @@ class BertPreTrainedModel(nn.Module):
         return get_parameter_dtype(self)
 
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path: Optional[Union[str, os.PathLike]], *model_args, **kwargs):
+    def from_pretrained(
+        cls,
+        pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
+        *model_args,
+        **kwargs,
+    ):
         config = kwargs.pop("config", None)
         state_dict = kwargs.pop("state_dict", None)
         cache_dir = kwargs.pop("cache_dir", None)
@@ -53,7 +58,9 @@ class BertPreTrainedModel(nn.Module):
 
         # Load config if we don't provide a configuration
         if not isinstance(config, PretrainedConfig):
-            config_path = config if config is not None else pretrained_model_name_or_path
+            config_path = (
+                config if config is not None else pretrained_model_name_or_path
+            )
             config, model_kwargs = cls.config_class.from_pretrained(
                 config_path,
                 *model_args,
@@ -76,7 +83,9 @@ class BertPreTrainedModel(nn.Module):
             if os.path.isdir(pretrained_model_name_or_path):
                 # Load from a PyTorch checkpoint
                 archive_file = os.path.join(pretrained_model_name_or_path, WEIGHTS_NAME)
-            elif os.path.isfile(pretrained_model_name_or_path) or is_remote_url(pretrained_model_name_or_path):
+            elif os.path.isfile(pretrained_model_name_or_path) or is_remote_url(
+                pretrained_model_name_or_path
+            ):
                 archive_file = pretrained_model_name_or_path
             else:
                 archive_file = hf_bucket_url(
@@ -128,23 +137,25 @@ class BertPreTrainedModel(nn.Module):
         # Convert old format to new format if needed from a PyTorch state_dict
         old_keys = []
         new_keys = []
-        m = {'embeddings.word_embeddings': 'word_embedding',
-             'embeddings.position_embeddings': 'pos_embedding',
-             'embeddings.token_type_embeddings': 'tk_type_embedding',
-             'embeddings.LayerNorm': 'embed_layer_norm',
-             'embeddings.dropout': 'embed_dropout',
-             'encoder.layer': 'bert_layers',
-             'pooler.dense': 'pooler_dense',
-             'pooler.activation': 'pooler_af',
-             'attention.self': "self_attention",
-             'attention.output.dense': 'attention_dense',
-             'attention.output.LayerNorm': 'attention_layer_norm',
-             'attention.output.dropout': 'attention_dropout',
-             'intermediate.dense': 'interm_dense',
-             'intermediate.intermediate_act_fn': 'interm_af',
-             'output.dense': 'out_dense',
-             'output.LayerNorm': 'out_layer_norm',
-             'output.dropout': 'out_dropout'}
+        m = {
+            "embeddings.word_embeddings": "word_embedding",
+            "embeddings.position_embeddings": "pos_embedding",
+            "embeddings.token_type_embeddings": "tk_type_embedding",
+            "embeddings.LayerNorm": "embed_layer_norm",
+            "embeddings.dropout": "embed_dropout",
+            "encoder.layer": "bert_layers",
+            "pooler.dense": "pooler_dense",
+            "pooler.activation": "pooler_af",
+            "attention.self": "self_attention",
+            "attention.output.dense": "attention_dense",
+            "attention.output.LayerNorm": "attention_layer_norm",
+            "attention.output.dropout": "attention_dropout",
+            "intermediate.dense": "interm_dense",
+            "intermediate.intermediate_act_fn": "interm_af",
+            "output.dense": "out_dense",
+            "output.LayerNorm": "out_layer_norm",
+            "output.dropout": "out_dropout",
+        }
 
         for key in state_dict.keys():
             new_key = None
@@ -178,7 +189,8 @@ class BertPreTrainedModel(nn.Module):
             if k not in your_bert_params and not k.startswith("cls."):
                 possible_rename = [x for x in k.split(".")[1:-1] if x in m.values()]
                 raise ValueError(
-                    f"{k} cannot be reload to your model, one/some of {possible_rename} we provided have been renamed")
+                    f"{k} cannot be reload to your model, one/some of {possible_rename} we provided have been renamed"
+                )
 
         # PyTorch's `_load_from_state_dict` does not copy parameters in a module's descendants
         # so we need to apply the function recursively.
@@ -200,7 +212,9 @@ class BertPreTrainedModel(nn.Module):
         # Make sure we are able to load base models as well as derived models (with heads)
         start_prefix = ""
         model_to_load = model
-        has_prefix_module = any(s.startswith(cls.base_model_prefix) for s in state_dict.keys())
+        has_prefix_module = any(
+            s.startswith(cls.base_model_prefix) for s in state_dict.keys()
+        )
         if not hasattr(model, cls.base_model_prefix) and has_prefix_module:
             start_prefix = cls.base_model_prefix + "."
         if hasattr(model, cls.base_model_prefix) and not has_prefix_module:
@@ -210,9 +224,12 @@ class BertPreTrainedModel(nn.Module):
         if model.__class__.__name__ != model_to_load.__class__.__name__:
             base_model_state_dict = model_to_load.state_dict().keys()
             head_model_state_dict_without_base_prefix = [
-                key.split(cls.base_model_prefix + ".")[-1] for key in model.state_dict().keys()
+                key.split(cls.base_model_prefix + ".")[-1]
+                for key in model.state_dict().keys()
             ]
-            missing_keys.extend(head_model_state_dict_without_base_prefix - base_model_state_dict)
+            missing_keys.extend(
+                head_model_state_dict_without_base_prefix - base_model_state_dict
+            )
 
         # Some models may have keys that are not in the state by design, removing them before needlessly warning
         # the user.
@@ -222,7 +239,9 @@ class BertPreTrainedModel(nn.Module):
 
         if cls._keys_to_ignore_on_load_unexpected is not None:
             for pat in cls._keys_to_ignore_on_load_unexpected:
-                unexpected_keys = [k for k in unexpected_keys if re.search(pat, k) is None]
+                unexpected_keys = [
+                    k for k in unexpected_keys if re.search(pat, k) is None
+                ]
 
         if len(error_msgs) > 0:
             raise RuntimeError(
@@ -242,7 +261,11 @@ class BertPreTrainedModel(nn.Module):
             }
             return model, loading_info
 
-        if hasattr(config, "xla_device") and config.xla_device and is_torch_tpu_available():
+        if (
+            hasattr(config, "xla_device")
+            and config.xla_device
+            and is_torch_tpu_available()
+        ):
             import torch_xla.core.xla_model as xm
 
             model = xm.send_cpu_data_to_device(model, xm.xla_device())
