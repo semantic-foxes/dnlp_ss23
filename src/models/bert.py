@@ -213,8 +213,9 @@ class BertLayer(nn.Module):
             The result of the add_norm layer.
         """
 
-        residual_connection = previous_layer_input
-        residual_connection += dropout_layer(dense_layer(previous_layer_output))
+        residual_connection = (
+            dropout_layer(dense_layer(previous_layer_output)) + previous_layer_input
+        )
 
         result = layer_norm_layer(residual_connection)
         return result
