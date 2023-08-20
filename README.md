@@ -44,6 +44,9 @@ This dataset provides pairs of sentences and scores reflecting the similarity be
 The project is developed in Python 3.8. 
 
 * Follow `setup_gwdg.sh` to properly setup a conda environment and install dependencies.
+```
+source setup_gwdg.sh
+```
 
 * Alternatively, to install necessary dependencies, run:
 ```
