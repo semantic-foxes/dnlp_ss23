@@ -6,22 +6,22 @@ from src.utils.utils import *
 
 
 class BertSelfAttention(nn.Module):
-    def __init__(self, config):
+    def __init__(self, num_attention_heads, hidden_size, attention_dropout_prob):
         super().__init__()
 
-        self.num_attention_heads = config.num_attention_heads
-        self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
+        self.num_attention_heads = num_attention_heads
+        self.attention_head_size = int(hidden_size / num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
 
         # Initialize the linear transformation layers for key, value, query
-        self.query = nn.Linear(config.hidden_size, self.all_head_size)
-        self.key = nn.Linear(config.hidden_size, self.all_head_size)
-        self.value = nn.Linear(config.hidden_size, self.all_head_size)
+        self.query = nn.Linear(hidden_size, self.all_head_size)
+        self.key = nn.Linear(hidden_size, self.all_head_size)
+        self.value = nn.Linear(hidden_size, self.all_head_size)
 
         # This dropout is applied to normalized attention scores following the
         # original implementation of transformer. Although it is a bit unusual,
         # we empirically observe that it yields better performance
-        self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        self.dropout = nn.Dropout(attention_dropout_prob)
 
     def transform(
             self,
@@ -162,25 +162,33 @@ class BertSelfAttention(nn.Module):
 
 
 class BertLayer(nn.Module):
-    def __init__(self, config):
+    def __init__(
+            self,
+            num_attention_heads,
+            hidden_size,
+            intermediate_size,
+            eps,
+            attention_dropout_prob,
+            hidden_dropout_prob,
+    ):
         super().__init__()
 
         # multi-head attention
-        self.self_attention = BertSelfAttention(config)
+        self.self_attention = BertSelfAttention(num_attention_heads, hidden_size, attention_dropout_prob)
 
         # add-norm
-        self.attention_dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.attention_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.attention_dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.attention_dense = nn.Linear(hidden_size, hidden_size)
+        self.attention_layer_norm = nn.LayerNorm(hidden_size, eps=eps)
+        self.attention_dropout = nn.Dropout(hidden_dropout_prob)
 
         # feed forward
-        self.interm_dense = nn.Linear(config.hidden_size, config.intermediate_size)
+        self.interm_dense = nn.Linear(hidden_size, intermediate_size)
         self.interm_af = F.gelu
 
         # another add-norm
-        self.out_dense = nn.Linear(config.intermediate_size, config.hidden_size)
-        self.out_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.out_dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.out_dense = nn.Linear(intermediate_size, hidden_size)
+        self.out_layer_norm = nn.LayerNorm(hidden_size, eps=eps)
+        self.out_dropout = nn.Dropout(hidden_dropout_prob)
 
     @staticmethod
     def add_norm(
@@ -282,6 +290,7 @@ class BertLayer(nn.Module):
 
         return result
 
+
 class BertModel(BertPreTrainedModel):
     """
     the bert model returns the final embeddings for each token in a sentence
@@ -291,25 +300,48 @@ class BertModel(BertPreTrainedModel):
     3. a linear transformation layer for [CLS] token (used in self.forward, as given)
     """
 
-    def __init__(self, config):
-        super().__init__(config)
-        self.config = config
+    def __init__(
+            self,
+            vocab_size: int = 30522,
+            type_vocab_size: int = 2,
+            hidden_size: int = 768,
+            intermediate_size: int = 3072,
+            pad_token_id: int = 0,
+            max_sequence_len: int = 512,
+            initializer_range: float = 0.02,
+            eps: float = 1e-12,
+            hidden_dropout_prob: float = 0.1,
+            attention_dropout_prob: float = 0.1,
+            num_attention_heads: int = 12,
+            num_bert_layers: int = 12
+    ):
+        super().__init__(initializer_range=initializer_range)
 
-        # embedding
-        self.word_embedding = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
-        self.pos_embedding = nn.Embedding(config.max_position_embeddings, config.hidden_size)
-        self.tk_type_embedding = nn.Embedding(config.type_vocab_size, config.hidden_size)
-        self.embed_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.embed_dropout = nn.Dropout(config.hidden_dropout_prob)
+        # Embeddings
+        self.word_embedding = nn.Embedding(vocab_size, hidden_size, padding_idx=pad_token_id)
+        self.pos_embedding = nn.Embedding(max_sequence_len, hidden_size)
+        self.tk_type_embedding = nn.Embedding(type_vocab_size, hidden_size)
+        self.embed_layer_norm = nn.LayerNorm(hidden_size, eps=eps)
+        self.embed_dropout = nn.Dropout(hidden_dropout_prob)
         # position_ids (1, len position emb) is a constant, register to buffer
-        position_ids = torch.arange(config.max_position_embeddings).unsqueeze(0)
+        position_ids = torch.arange(max_sequence_len).unsqueeze(0)
         self.register_buffer('position_ids', position_ids)
 
         # bert encoder
-        self.bert_layers = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
+        self.bert_layers = nn.ModuleList(
+            [BertLayer(
+                num_attention_heads=num_attention_heads,
+                hidden_size=hidden_size,
+                intermediate_size=intermediate_size,
+                eps=eps,
+                attention_dropout_prob=attention_dropout_prob,
+                hidden_dropout_prob=hidden_dropout_prob
+            )
+                for _ in range(num_bert_layers)]
+        )
 
         # for [CLS] token
-        self.pooler_dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.pooler_dense = nn.Linear(hidden_size, hidden_size)
         self.pooler_af = nn.Tanh()
 
         self.init_weights()

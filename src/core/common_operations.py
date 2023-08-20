@@ -303,6 +303,7 @@ def train_validation_loop(
                 raise e
 
         if save_best_path is not None and val_metric > best_metric:
+            best_metric = val_metric
             save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1

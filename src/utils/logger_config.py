@@ -1,6 +1,5 @@
 import logging
 import logging.handlers
-import yaml
 import os
 
 log_path = 'logs/log'
@@ -18,11 +17,12 @@ file_handler = logging.handlers.RotatingFileHandler(log_path, mode='w', backupCo
 file_handler.setLevel(log_level)
 file_formatter = logging.Formatter('%(asctime)s - %(message)s')
 file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
 
-# Rolling over if necessary
-should_roll_over = os.path.isfile(log_path)
-if should_roll_over:  # log already exists, roll over!
-    file_handler.doRollover()
+# # Rolling over if necessary
+# should_roll_over = os.path.isfile(log_path)
+# if should_roll_over:  # log already exists, roll over!
+#     file_handler.doRollover()
 
 # Console part
 console_handler = logging.StreamHandler()
