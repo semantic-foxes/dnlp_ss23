@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 import argparse
 
-import pandas as pd
 import yaml
 
 from sklearn.metrics import accuracy_score
@@ -18,29 +17,29 @@ from src.datasets import SSTDataset
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type=int, default=11711)
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument(
-        "--option",
-        type=str,
-        help="pretrain: the BERT parameters are frozen; finetune: BERT parameters are updated",
-        choices=("pretrain", "finetune"),
-        default="finetune",
-    )
-    parser.add_argument("--use_gpu", action="store_true", default="True")
-    parser.add_argument("--dev_out", type=str, default="sst-dev-out.csv")
-    parser.add_argument("--test_out", type=str, default="sst-test-out.csv")
+    # parser.add_argument("--seed", type=int, default=11711)
+    # parser.add_argument("--epochs", type=int, default=10)
+    # parser.add_argument(
+    #     "--option",
+    #     type=str,
+    #     help="pretrain: the BERT parameters are frozen; finetune: BERT parameters are updated",
+    #     choices=("pretrain", "finetune"),
+    #     default="finetune",
+    # )
+    # parser.add_argument("--use_gpu", action="store_true", default="True")
+    # parser.add_argument("--dev_out", type=str, default="sst-dev-out.csv")
+    # parser.add_argument("--test_out", type=str, default="sst-test-out.csv")
 
-    parser.add_argument(
-        "--batch_size", help="sst: 64 can fit a 12GB GPU", type=int, default=64
-    )
-    parser.add_argument("--hidden_dropout_prob", type=float, default=0.3)
-    parser.add_argument(
-        "--lr",
-        type=float,
-        help="learning rate, default lr for 'pretrain': 1e-3, 'finetune': 1e-5",
-        default=1e-5,
-    )
+    # parser.add_argument(
+    #     "--batch_size", help="sst: 64 can fit a 12GB GPU", type=int, default=64
+    # )
+    # parser.add_argument("--hidden_dropout_prob", type=float, default=0.3)
+    # parser.add_argument(
+    #     "--lr",
+    #     type=float,
+    #     help="learning rate, default lr for 'pretrain': 1e-3, 'finetune': 1e-5",
+    #     default=1e-5,
+    # )
     parser.add_argument("--local_files_only", action="store_true")
 
     args = parser.parse_args()
@@ -48,7 +47,7 @@ def get_args():
 
 
 if __name__ == "__main__":
-    # args = get_args()
+    args = get_args()
 
     with open("config.yaml", "r") as f:
         CONFIG = yaml.load(f, Loader=yaml.FullLoader)
@@ -90,7 +89,9 @@ if __name__ == "__main__":
             "hidden_size": config_bert["hidden_size"],
             "hidden_dropout_prob": config_bert["dropout_prob"],
             "data_dir": ".",
-            "local_files_only": config_bert["local_files_only"],
+            "local_files_only": args.local_files_only
+            if True
+            else config_bert["local_files_only"],
         }
     )
     model = BertSentimentClassifier(model_config)

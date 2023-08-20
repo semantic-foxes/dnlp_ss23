@@ -12,3 +12,6 @@ pip install filelock==3.0.12
 pip install sklearn==0.0
 pip install tokenizers==0.10.1
 pip install explainaboard_client==0.0.7
+pip install pyyaml==6.0.1
+pip install wandb==0.15.8
+pip install pandas==2.0.3
