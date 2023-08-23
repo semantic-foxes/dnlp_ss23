@@ -16,16 +16,21 @@ data:
     test_path: 'data/sts-test-student.csv'
 
   dataloader:
-    batch_size: 64
+    batch_size: 128
     num_workers: 1
 
 bert_model:
   hidden_size: 768
   dropout_prob: 0.1
-  mode: 'finetune' # 'pretrain' or 'finetune'
+  mode: 'pretrain' # 'pretrain' or 'finetune'
   local_files_only: False
 
 train:
-  n_epochs: 10
-  lr: 0.00001
+  n_epochs: 1
+  lr: 0.001
   checkpoint_path: 'checkpoints/sst_classifier.pt'
+
+predict:
+  sst_prediction_path: 'predictions/sst/sst_prediction.csv'
+  quora_prediction_path: 'predictions/quora/quora_prediction.csv'
+  sts_prediction_path: 'predictions/sts/sts_prediction.csv'

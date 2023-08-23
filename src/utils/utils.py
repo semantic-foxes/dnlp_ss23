@@ -24,33 +24,23 @@ __version__ = "4.0.0"
 _torch_version = importlib_metadata.version("torch")
 
 hf_cache_home = os.path.expanduser(
-    os.getenv(
-        "HF_HOME", os.path.join(os.getenv("XDG_CACHE_HOME", "~/.cache"), "huggingface")
-    )
-)
+    os.getenv("HF_HOME", os.path.join(os.getenv("XDG_CACHE_HOME", "~/.cache"), "huggingface")))
 default_cache_path = os.path.join(hf_cache_home, "transformers")
-PYTORCH_PRETRAINED_BERT_CACHE = os.getenv(
-    "PYTORCH_PRETRAINED_BERT_CACHE", default_cache_path
-)
-PYTORCH_TRANSFORMERS_CACHE = os.getenv(
-    "PYTORCH_TRANSFORMERS_CACHE", PYTORCH_PRETRAINED_BERT_CACHE
-)
+PYTORCH_PRETRAINED_BERT_CACHE = os.getenv("PYTORCH_PRETRAINED_BERT_CACHE", default_cache_path)
+PYTORCH_TRANSFORMERS_CACHE = os.getenv("PYTORCH_TRANSFORMERS_CACHE", PYTORCH_PRETRAINED_BERT_CACHE)
 TRANSFORMERS_CACHE = os.getenv("TRANSFORMERS_CACHE", PYTORCH_TRANSFORMERS_CACHE)
 
 PRESET_MIRROR_DICT = {
     "tuna": "https://mirrors.tuna.tsinghua.edu.cn/hugging-face-models",
     "bfsu": "https://mirrors.bfsu.edu.cn/hugging-face-models",
 }
-HUGGINGFACE_CO_PREFIX = (
-    "https://huggingface.co/{model_id}/resolve/{revision}/{filename}"
-)
+HUGGINGFACE_CO_PREFIX = "https://huggingface.co/{model_id}/resolve/{revision}/{filename}"
 WEIGHTS_NAME = "pytorch_model.bin"
 CONFIG_NAME = "config.json"
 
 
 def is_torch_available():
     return True
-
 
 def is_tf_available():
     return False
@@ -70,14 +60,7 @@ def is_remote_url(url_or_filename):
     parsed = urlparse(url_or_filename)
     return parsed.scheme in ("http", "https")
 
-
-def http_get(
-    url: str,
-    temp_file: BinaryIO,
-    proxies=None,
-    resume_size=0,
-    headers: Optional[Dict[str, str]] = None,
-):
+def http_get(url: str, temp_file: BinaryIO, proxies=None, resume_size=0, headers: Optional[Dict[str, str]] = None):
     headers = copy.deepcopy(headers)
     if resume_size > 0:
         headers["Range"] = "bytes=%d-" % (resume_size,)
@@ -115,11 +98,7 @@ def url_to_filename(url: str, etag: Optional[str] = None) -> str:
 
 
 def hf_bucket_url(
-    model_id: str,
-    filename: str,
-    subfolder: Optional[str] = None,
-    revision: Optional[str] = None,
-    mirror=None,
+        model_id: str, filename: str, subfolder: Optional[str] = None, revision: Optional[str] = None, mirror=None
 ) -> str:
     if subfolder is not None:
         filename = f"{subfolder}/{filename}"
@@ -134,9 +113,7 @@ def hf_bucket_url(
 
     if revision is None:
         revision = "main"
-    return HUGGINGFACE_CO_PREFIX.format(
-        model_id=model_id, revision=revision, filename=filename
-    )
+    return HUGGINGFACE_CO_PREFIX.format(model_id=model_id, revision=revision, filename=filename)
 
 
 def http_user_agent(user_agent: Union[Dict, str, None] = None) -> str:
@@ -153,15 +130,15 @@ def http_user_agent(user_agent: Union[Dict, str, None] = None) -> str:
 
 
 def get_from_cache(
-    url: str,
-    cache_dir=None,
-    force_download=False,
-    proxies=None,
-    etag_timeout=10,
-    resume_download=False,
-    user_agent: Union[Dict, str, None] = None,
-    use_auth_token: Union[bool, str, None] = None,
-    local_files_only=False,
+        url: str,
+        cache_dir=None,
+        force_download=False,
+        proxies=None,
+        etag_timeout=10,
+        resume_download=False,
+        user_agent: Union[Dict, str, None] = None,
+        use_auth_token: Union[bool, str, None] = None,
+        local_files_only=False,
 ) -> Optional[str]:
     if cache_dir is None:
         cache_dir = TRANSFORMERS_CACHE
@@ -176,22 +153,14 @@ def get_from_cache(
     elif use_auth_token:
         token = HfFolder.get_token()
         if token is None:
-            raise EnvironmentError(
-                "You specified use_auth_token=True, but a huggingface token was not found."
-            )
+            raise EnvironmentError("You specified use_auth_token=True, but a huggingface token was not found.")
         headers["authorization"] = "Bearer {}".format(token)
 
     url_to_download = url
     etag = None
     if not local_files_only:
         try:
-            r = requests.head(
-                url,
-                headers=headers,
-                allow_redirects=False,
-                proxies=proxies,
-                timeout=etag_timeout,
-            )
+            r = requests.head(url, headers=headers, allow_redirects=False, proxies=proxies, timeout=etag_timeout)
             r.raise_for_status()
             etag = r.headers.get("X-Linked-Etag") or r.headers.get("ETag")
             # We favor a custom header indicating the etag of the linked resource, and
@@ -224,9 +193,7 @@ def get_from_cache(
         else:
             matching_files = [
                 file
-                for file in fnmatch.filter(
-                    os.listdir(cache_dir), filename.split(".")[0] + ".*"
-                )
+                for file in fnmatch.filter(os.listdir(cache_dir), filename.split(".")[0] + ".*")
                 if not file.endswith(".json") and not file.endswith(".lock")
             ]
             if len(matching_files) > 0:
@@ -254,6 +221,7 @@ def get_from_cache(
     # Prevent parallel downloads of the same file with a lock.
     lock_path = cache_path + ".lock"
     with FileLock(lock_path):
+
         # If the download just completed while the lock was activated.
         if os.path.exists(cache_path) and not force_download:
             # Even if returning early like here, the lock will be released.
@@ -273,21 +241,13 @@ def get_from_cache(
             else:
                 resume_size = 0
         else:
-            temp_file_manager = partial(
-                tempfile.NamedTemporaryFile, mode="wb", dir=cache_dir, delete=False
-            )
+            temp_file_manager = partial(tempfile.NamedTemporaryFile, mode="wb", dir=cache_dir, delete=False)
             resume_size = 0
 
         # Download to temporary file, then copy to cache dir once finished.
         # Otherwise you get corrupt cache entries if the download gets interrupted.
         with temp_file_manager() as temp_file:
-            http_get(
-                url_to_download,
-                temp_file,
-                proxies=proxies,
-                resume_size=resume_size,
-                headers=headers,
-            )
+            http_get(url_to_download, temp_file, proxies=proxies, resume_size=resume_size, headers=headers)
 
         os.replace(temp_file.name, cache_path)
 
@@ -300,16 +260,16 @@ def get_from_cache(
 
 
 def cached_path(
-    url_or_filename,
-    cache_dir=None,
-    force_download=False,
-    proxies=None,
-    resume_download=False,
-    user_agent: Union[Dict, str, None] = None,
-    extract_compressed_file=False,
-    force_extract=False,
-    use_auth_token: Union[bool, str, None] = None,
-    local_files_only=False,
+        url_or_filename,
+        cache_dir=None,
+        force_download=False,
+        proxies=None,
+        resume_download=False,
+        user_agent: Union[Dict, str, None] = None,
+        extract_compressed_file=False,
+        force_extract=False,
+        use_auth_token: Union[bool, str, None] = None,
+        local_files_only=False,
 ) -> Optional[str]:
     if cache_dir is None:
         cache_dir = TRANSFORMERS_CACHE
@@ -338,9 +298,7 @@ def cached_path(
         raise EnvironmentError("file {} not found".format(url_or_filename))
     else:
         # Something unknown
-        raise ValueError(
-            "unable to parse {} as a URL or as a local path".format(url_or_filename)
-        )
+        raise ValueError("unable to parse {} as a URL or as a local path".format(url_or_filename))
 
     if extract_compressed_file:
         if not is_zipfile(output_path) and not tarfile.is_tarfile(output_path):
@@ -352,11 +310,7 @@ def cached_path(
         output_extract_dir_name = output_file.replace(".", "-") + "-extracted"
         output_path_extracted = os.path.join(output_dir, output_extract_dir_name)
 
-        if (
-            os.path.isdir(output_path_extracted)
-            and os.listdir(output_path_extracted)
-            and not force_extract
-        ):
+        if os.path.isdir(output_path_extracted) and os.listdir(output_path_extracted) and not force_extract:
             return output_path_extracted
 
         # Prevent parallel extractions
@@ -373,9 +327,7 @@ def cached_path(
                 tar_file.extractall(output_path_extracted)
                 tar_file.close()
             else:
-                raise EnvironmentError(
-                    "Archive format of {} could not be identified".format(output_path)
-                )
+                raise EnvironmentError("Archive format of {} could not be identified".format(output_path))
 
         return output_path_extracted
 
@@ -402,8 +354,6 @@ def get_extended_attention_mask(attention_mask: torch.Tensor, dtype) -> torch.Te
     assert attention_mask.dim() == 2
     # [batch_size, 1, 1, seq_length] for multi-head attention
     extended_attention_mask = attention_mask[:, None, None, :]
-    extended_attention_mask = extended_attention_mask.to(
-        dtype=dtype
-    )  # fp16 compatibility
+    extended_attention_mask = extended_attention_mask.to(dtype=dtype)  # fp16 compatibility
     extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
     return extended_attention_mask

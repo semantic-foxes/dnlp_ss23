@@ -22,18 +22,16 @@ def generate_device(use_cuda: bool) -> torch.device:
     """
     if use_cuda:
         if not torch.cuda.is_available():
-            message = (
-                "WARNING: CUDA is not available while being asked for it. "
-                "Falling back to CPU."
-            )
+            message = 'WARNING: CUDA is not available while being asked for it. ' \
+                      'Falling back to CPU.'
             logger.warn(message)
-            device = torch.device("cpu")
+            device = torch.device('cpu')
 
         else:
-            device = torch.device("cuda:0")
+            device = torch.device('cuda:0')
 
     else:
-        device = torch.device("cpu")
+        device = torch.device('cpu')
 
     return device
 
@@ -52,7 +50,10 @@ def get_device(obj: Union[nn.Module, torch.Tensor]):
 
 
 def save_state(
-    model: nn.Module, optimizer: torch.optim.Optimizer, config: dict, filepath: str
+        model: nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        filepath: str
 ):
     """
     Saves the model state, the optimizer state and the config
@@ -70,15 +71,16 @@ def save_state(
     directory = os.path.dirname(filepath)
     os.makedirs(directory, exist_ok=True)
 
-    logger.info(f"Saving the model to {filepath}.")
+    logger.info(f'Saving the model to {filepath}.')
 
     save_info = {
-        "model": model.state_dict(),
-        "optim": optimizer.state_dict(),
-        "config": config,
+        'model': model.state_dict(),
+        'optim': optimizer.state_dict(),
+        'config': config
     }
 
     torch.save(save_info, filepath)
-    logger.info(
-        f"Successfully saved the model, optimizer " f"and config to {filepath}."
-    )
+    logger.info(f'Successfully saved the model, optimizer '
+                f'and config to {filepath}.')
+
+
