@@ -5,12 +5,13 @@ from sklearn.metrics import accuracy_score, r2_score
 
 from torch.utils.data import DataLoader
 from torch import nn
+from src.core.multitask_predictions import generate_predictions_multitask
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
-from src.core import train_validation_loop_multitask, generate_predictions_multitask
+from src.core import train_validation_loop_multitask, generate_predictions
 
 
 if __name__ == "__main__":
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     config_dataloader = CONFIG['data']['dataloader']
     config_prediction = CONFIG['predict']
 
+
     config_bert = CONFIG['bert_model']
     config_train = CONFIG['train']
 
@@ -30,70 +32,25 @@ if __name__ == "__main__":
     device = generate_device(CONFIG['use_cuda'])
 
     # Create datasets
-    sst_train_dataset = SSTDataset(
-        config_sst['train_path'],
-        return_targets=True
-    )
-    sst_val_dataset = SSTDataset(
-        config_sst['val_path'],
-        return_targets=True
-    )
+
     sst_test_dataset = SSTDataset(
         config_sst['test_path'],
         return_targets=False
     )
 
-    quora_train_dataset = SentenceSimilarityDataset(
-        config_quora['train_path'],
-        return_targets=True
-    )
-    quora_val_dataset = SentenceSimilarityDataset(
-        config_quora['val_path'],
-        return_targets=True
-    )
     quora_test_dataset = SentenceSimilarityDataset(
         config_quora['test_path'],
         return_targets=False,
         index_col=False
     )
 
-    sts_train_dataset = SentenceSimilarityDataset(
-        config_sts['train_path'],
-        binary_task=False,
-        return_targets=True
-    )
-    sts_val_dataset = SentenceSimilarityDataset(
-        config_sts['val_path'],
-        binary_task=False,
-        return_targets=True
-    )
     sts_test_dataset = SentenceSimilarityDataset(
         config_sts['test_path'],
         binary_task=False,
         return_targets=False
     )
 
-    # Create dataloaders
-    train_dataloaders = [
-        DataLoader(
-            x,
-            shuffle=True,
-            collate_fn=x.collate_fn,
-            batch_size=config_dataloader['batch_size'],
-            num_workers=config_dataloader['num_workers'],
-        )
-        for x in [sst_train_dataset, quora_train_dataset, sts_train_dataset]
-    ]
-    val_dataloaders = [
-        DataLoader(
-            x,
-            shuffle=False,
-            collate_fn=x.collate_fn,
-            batch_size=config_dataloader['batch_size'],
-            num_workers=config_dataloader['num_workers'],
-        )
-        for x in [sst_val_dataset, quora_val_dataset, sts_val_dataset]
-    ]
+    # Create dataloader
     test_dataloaders = [
         DataLoader(
             x,
@@ -106,8 +63,6 @@ if __name__ == "__main__":
         # the order of datasets must match the order in config.yaml (predictions save_path)
     ]
 
-    print([len(x.dataset) for x in train_dataloaders])
-
     model = MultitaskBERT(
         num_labels=5,
         option=config_bert['mode'],
@@ -118,26 +73,6 @@ if __name__ == "__main__":
     )
 
     model = model.to(device)
-
-    # Optimizer
-    optimizer = AdamW(model.parameters(), lr=config_train['lr'])
-
-    logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
-                f'all the tasks.')
-
-    train_validation_loop_multitask(
-        model=model,
-        optimizer=optimizer,
-        criterion=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
-        metric=[accuracy_score, accuracy_score, r2_score],
-        train_loader=train_dataloaders,
-        val_loader=val_dataloaders,
-        n_epochs=config_train['n_epochs'],
-        device=device,
-        save_best_path=config_train['checkpoint_path'],
-        overall_config=CONFIG,
-        verbose=False,
-    )
 
     for test_loader, save_path in zip(test_dataloaders, config_prediction):
         predictions = generate_predictions_multitask(

@@ -142,33 +142,57 @@ def evaluate_model_multitask(
     for i, dataloader in enumerate(eval_dataloaders):
         running_loss = 0
         running_metric = 0
-        task_name = dataloader.dataset.task
+        task = dataloader.dataset.task
+        # TODO: check that
+        for batch in tqdm(dataloader, leave=False, desc=f'Evaluating on {task}'):
+            if task == 'sentiment':
+                ids, attention_masks, targets = batch['token_ids'], batch['attention_masks'], batch['targets']
 
-        for batch in tqdm(dataloader, leave=False,
-                          desc=f'Evaluating on {task_name}'):
-            ids, mask, targets, = \
-                batch['token_ids'], batch['attention_masks'], batch['targets']
+                ids = ids.to(device)
+                attention_masks = attention_masks.to(device)
+                targets = targets.to(device)
 
-            ids = ids.to(device)
-            mask = mask.to(device)
-            targets = targets.to(device)
+                logits = model(task, ids, attention_masks)
 
-            logits = model(ids, mask)
+            elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
+
+                ids_1, attention_masks_1, ids_2, attention_masks_2, targets = \
+                    (batch['token_ids_1'], batch['attention_masks_1'],
+                        batch['token_ids_2'], batch['attention_masks_2'], batch['targets'])
+
+                ids_1 = ids_1.to(device)
+                ids_2 = ids_2.to(device)
+                attention_masks_1 = attention_masks_1.to(device)
+                attention_masks_2 = attention_masks_2.to(device)
+                targets = targets.to(device)
+
+                logits = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+
+            else:
+                raise NotImplementedError
+ 
+
 
             if criterions is not None:
                 loss = criterions[i](logits, targets)
                 running_loss += loss.item() * len(logits)
 
-            predictions = np.argmax(logits.detach().cpu().numpy(), axis=1).flatten()
+            if task == 'sentiment' or task == 'paraphrase_classifier':
+                predictions = np.argmax(logits.detach().cpu().numpy(), axis=1).flatten()
+            elif task == 'paraphrase_regressor':
+                predictions = logits.detach().cpu().numpy().flatten()
+            else:
+                raise NotImplementedError
+            
             running_metric += metrics[i](predictions, targets.cpu().numpy()) * len(predictions)
 
         if criterions:
             result[
-                f'{task_name} {evaluation_set_name} loss'
+                f'{task} {evaluation_set_name} loss'
             ] = running_loss / len(dataloader.dataset)
 
         result[
-            f'{task_name} {evaluation_set_name} metric'
+            f'{task} {evaluation_set_name} metric'
         ] = running_metric / len(dataloader.dataset)
 
     return result

@@ -75,18 +75,17 @@ class SentenceSimilarityDataset(Dataset):
             binary_task: bool = True,
             return_targets: bool = True,
             local_only: bool = False,
+            index_col: int = 0
     ):
-        dataset = pd.read_csv(dataset_path, index_col=0, delimiter='\t')
+        dataset = pd.read_csv(dataset_path, index_col=index_col, delimiter='\t')
 
         # Data handling
         dataset.index = dataset['id']
         dataset.drop('id', axis=1, inplace=True)
-        dataset.dropna(inplace=True) # TODO: Modify for a correct test behaviour
+        dataset.dropna(inplace=True)
         self.dataset = dataset[['sentence1', 'sentence2']]
-        self.dataset['sentence1'] = self.dataset['sentence1'] \
-            .progress_apply(self.preprocess_string)
-        self.dataset['sentence2'] = self.dataset['sentence2'] \
-            .progress_apply(self.preprocess_string)
+        self.dataset.loc[:, 'sentence1'] = self.dataset['sentence1'].apply(self.preprocess_string)
+        self.dataset.loc[:, 'sentence2'] = self.dataset['sentence2'].apply(self.preprocess_string)
         self.ids = list(dataset.index)
 
         self.binary_task = binary_task
