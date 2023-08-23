@@ -22,7 +22,6 @@ class SSTDataset(Dataset):
         dataset.index = dataset['id']
         dataset.drop('id', axis=1, inplace=True)
         dataset['sentence'] = dataset['sentence'].str.lower().str.strip()
-        dataset['sentiment'] = dataset['sentiment'].astype(int)
 
         self.dataset = dataset['sentence']
         self.ids = list(dataset.index)
@@ -43,9 +42,9 @@ class SSTDataset(Dataset):
 
     def __getitem__(self, index):
         if self.return_targets:
-            return self.dataset[index], self.targets[index]
+            return self.dataset.iloc[index], self.targets.iloc[index]
         else:
-            return self.dataset[index]
+            return self.dataset.iloc[index]
 
     def collate_fn(self, batch_data):
         if self.return_targets:
@@ -82,11 +81,12 @@ class SentenceSimilarityDataset(Dataset):
         # Data handling
         dataset.index = dataset['id']
         dataset.drop('id', axis=1, inplace=True)
-        dataset['sentence'] = dataset['sentence'] \
-            .progress_apply(self.preprocess_string)
-
-        self.dataset = dataset
+        dataset.dropna(inplace=True) # TODO: Modify for a correct test behaviour
         self.dataset = dataset[['sentence1', 'sentence2']]
+        self.dataset['sentence1'] = self.dataset['sentence1'] \
+            .progress_apply(self.preprocess_string)
+        self.dataset['sentence2'] = self.dataset['sentence2'] \
+            .progress_apply(self.preprocess_string)
         self.ids = list(dataset.index)
 
         self.binary_task = binary_task
@@ -121,9 +121,14 @@ class SentenceSimilarityDataset(Dataset):
 
     def __getitem__(self, index):
         if self.return_targets:
-            return self.dataset[index], self.targets[index]
+            result = (self.dataset.iloc[index]['sentence1'],
+                    self.dataset.iloc[index]['sentence2'],
+                    self.targets.iloc[index])
+            return result
         else:
-            return self.dataset[index]
+            return (self.dataset.iloc[index]['sentence1'],
+                    self.dataset.iloc[index]['sentence2'])
+
 
     def collate_fn(self, batch_data):
         sentences_1 = [x[0] for x in batch_data]
@@ -165,6 +170,6 @@ class SentenceSimilarityDataset(Dataset):
             if self.binary_task:
                 result['targets'] = torch.LongTensor(targets)
             else:
-                result['targets'] = torch.DoubleTensor(targets)
+                result['targets'] = torch.FloatTensor(targets)
 
         return result

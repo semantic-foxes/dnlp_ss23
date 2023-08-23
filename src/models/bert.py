@@ -121,6 +121,7 @@ class BertSelfAttention(nn.Module):
         attention /= (self.attention_head_size ** 0.5)
 
         attention = F.softmax(attention, dim=-1)
+        attention = self.dropout(attention)
         result = torch.matmul(attention, value)
         result = result.transpose(1, 2)
         result = result.reshape(query.shape[0], query.shape[2], -1)
@@ -174,7 +175,11 @@ class BertLayer(nn.Module):
         super().__init__()
 
         # multi-head attention
-        self.self_attention = BertSelfAttention(num_attention_heads, hidden_size, attention_dropout_prob)
+        self.self_attention = BertSelfAttention(
+            num_attention_heads,
+            hidden_size,
+            attention_dropout_prob
+        )
 
         # add-norm
         self.attention_dense = nn.Linear(hidden_size, hidden_size)
@@ -225,10 +230,12 @@ class BertLayer(nn.Module):
             The result of the add_norm layer.
         """
 
-        residual_connection = \
-            dense_layer(previous_layer_output) + previous_layer_input
+        residual_connection = (
+                dropout_layer(dense_layer(previous_layer_output))
+                + previous_layer_input
+        )
 
-        result = dropout_layer(layer_norm_layer(residual_connection))
+        result = layer_norm_layer(residual_connection)
         return result
 
     def forward(
@@ -321,6 +328,7 @@ class BertModel(BertPreTrainedModel):
         self.word_embedding = nn.Embedding(vocab_size, hidden_size, padding_idx=pad_token_id)
         self.pos_embedding = nn.Embedding(max_sequence_len, hidden_size)
         self.tk_type_embedding = nn.Embedding(type_vocab_size, hidden_size)
+
         self.embed_layer_norm = nn.LayerNorm(hidden_size, eps=eps)
         self.embed_dropout = nn.Dropout(hidden_dropout_prob)
         # position_ids (1, len position emb) is a constant, register to buffer
@@ -363,7 +371,9 @@ class BertModel(BertPreTrainedModel):
         tk_type_embeds = self.tk_type_embedding(tk_type_ids)
 
         # Add three embeddings together; then apply embed_layer_norm and dropout and return.
-        return self.embed_dropout(self.embed_layer_norm(tk_type_embeds + pos_embeds + inputs_embeds))
+        return self.embed_dropout(
+            self.embed_layer_norm(tk_type_embeds + pos_embeds + inputs_embeds)
+        )
 
     def encode(self, hidden_states, attention_mask):
         """
@@ -376,7 +386,7 @@ class BertModel(BertPreTrainedModel):
         extended_attention_mask = get_extended_attention_mask(attention_mask, self.dtype)
 
         # pass the hidden states through the encoder layers
-        for i, layer_module in enumerate(self.bert_layers):
+        for layer_module in self.bert_layers:
             # feed the encoding from the last bert_layer to the next
             hidden_states = layer_module(hidden_states, extended_attention_mask)
 

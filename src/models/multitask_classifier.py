@@ -3,33 +3,67 @@ from torch import nn
 from src.models.bert import BertModel
 
 class MultitaskBERT(nn.Module):
-    def __init__(self, config):
+    def __init__(
+            self,
+            num_labels,
+            option: str = 'finetune',
+            bert_model_name: str = 'bert-base-uncased',
+            local_files_only: bool = False,
+            vocab_size: int = 30522,
+            type_vocab_size: int = 2,
+            hidden_size: int = 768,
+            intermediate_size: int = 3072,
+            pad_token_id: int = 0,
+            max_sequence_len: int = 512,
+            initializer_range: float = 0.02,
+            eps: float = 1e-12,
+            hidden_dropout_prob: float = 0.1,
+            attention_dropout_prob: float = 0.1,
+            num_attention_heads: int = 12,
+            num_bert_layers: int = 12
+    ):
         super(MultitaskBERT, self).__init__()
 
-        self.num_labels = config.num_labels
+        self.num_labels = num_labels
         self.bert = BertModel.from_pretrained(
-            'bert-base-uncased',
-            local_files_only=config.local_files_only
+            model_name=bert_model_name,
+            local_files_only=local_files_only,
+            vocab_size=vocab_size,
+            type_vocab_size=type_vocab_size,
+            hidden_size=hidden_size,
+            intermediate_size=intermediate_size,
+            pad_token_id=pad_token_id,
+            max_sequence_len=max_sequence_len,
+            initializer_range=initializer_range,
+            eps=eps,
+            hidden_dropout_prob=hidden_dropout_prob,
+            attention_dropout_prob=attention_dropout_prob,
+            num_attention_heads=num_attention_heads,
+            num_bert_layers=num_bert_layers
         )
 
         # Pretrain mode does not require updating bert parameters.
-        for param in self.bert.parameters():
-            if config.option == 'pretrain':
+        if option == 'pretrain':
+            for param in self.bert.parameters():
                 param.requires_grad = False
-            elif config.option == 'finetune':
+        elif option == 'finetune':
+            for param in self.bert.parameters():
                 param.requires_grad = True
+        else:
+            raise AttributeError('Incorrect mode for BERT model. Should be'
+                                 'either \'pretrain\' or \'finetune\'.')
 
-        self.sentiment_classifier = nn.Linear(config.hidden_size, self.num_labels)
-        self.paraphrase_classifier = nn.Linear(2*config.hidden_size, 1)
-        self.paraphrase_regressor = nn.Linear(2*config.hidden_size, 1)
+        self.sentiment_classifier = nn.Linear(hidden_size, self.num_labels)
+        self.paraphrase_classifier = nn.Linear(2*hidden_size, 2)
+        self.paraphrase_regressor = nn.Linear(2*hidden_size, 1)
 
     def forward(
             self,
+            task: str,
             input_ids_1: torch.Tensor,
             attention_mask_1: torch.Tensor,
             input_ids_2: torch.Tensor = None,
-            attention_mask_2: torch.Tensor = None,
-            task: str = 'sentiment'
+            attention_mask_2: torch.Tensor = None
     ):
         if task == 'sentiment':
             result = self.predict_sentiment(input_ids_1, attention_mask_1)
