@@ -1,8 +1,6 @@
 import yaml
 import pandas as pd
 
-from sklearn.metrics import accuracy_score, r2_score
-
 from torch.utils.data import DataLoader
 from torch import nn
 
@@ -11,6 +9,7 @@ from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions
+from src.metrics import accuracy, pearson_correlation
 
 
 if __name__ == "__main__":
@@ -104,8 +103,6 @@ if __name__ == "__main__":
         for x in [sst_test_dataset, quora_test_dataset, sts_test_dataset]
     ]
 
-    print([len(x.dataset) for x in train_dataloaders])
-
     model = MultitaskBERT(
         num_labels=5,
         option=config_bert['mode'],
@@ -127,7 +124,7 @@ if __name__ == "__main__":
         model=model,
         optimizer=optimizer,
         criterion=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
-        metric=[accuracy_score, accuracy_score, r2_score],
+        metric=[accuracy, accuracy, pearson_correlation],
         train_loader=train_dataloaders,
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
@@ -137,15 +134,12 @@ if __name__ == "__main__":
         verbose=False,
     )
 
-    for test_loader, save_path in zip(test_dataloaders, config_prediction):
+    for test_loader, save_path in zip(test_dataloaders, config_prediction.values()):
         predictions = generate_predictions(
             model=model,
             dataloader=test_loader,
             device=device,
-            dataloader_message='test'
+            dataloader_message=test_loader.dataset.task
         )
-        result = pd.DataFrame(
-            {'predictions': predictions},
-            index=test_loader.dataset.index
-        )
-        result.to_csv(save_path)
+
+        predictions.to_csv(save_path)

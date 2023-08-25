@@ -97,26 +97,56 @@ def generate_predictions(
     """
 
     model.eval()
-    result = pd.DataFrame(columns=['prediction'])
+    # result = pd.DataFrame(columns=['prediction'])
+    task = dataloader.dataset.task
     progress_bar = tqdm(dataloader,
                         desc=f'Making predictions on {dataloader_message}')
 
+    result = []
+
     for i, batch in enumerate(progress_bar):
-        ids, attention_masks = batch['token_ids'], batch['attention_masks']
+        if task == 'sentiment':
+            ids, attention_masks = \
+                batch['token_ids'], batch['attention_masks']
 
-        ids = ids.to(device)
-        attention_masks = attention_masks.to(device)
+            ids = ids.to(device)
+            attention_masks = attention_masks.to(device)
 
-        predicted_logits = model(ids, attention_masks)
-        predicted_logits = predicted_logits.cpu().numpy()
-        predictions = np.argmax(predicted_logits, axis=1).flatten()
+            predictions = model(task, ids, attention_masks)
+            predictions = torch.argmax(predictions, dim=1)
 
-        new_dataframe = pd.DataFrame(
-            {'prediction': predictions},
-            index=ids
-        )
+        elif task == 'paraphrase_classifier':
+            ids_1, attention_masks_1, ids_2, attention_masks_2 = \
+                (batch['token_ids_1'], batch['attention_masks_1'],
+                 batch['token_ids_2'], batch['attention_masks_2'])
 
-        result = result.append(new_dataframe)
+            ids_1 = ids_1.to(device)
+            ids_2 = ids_2.to(device)
+            attention_masks_1 = attention_masks_1.to(device)
+            attention_masks_2 = attention_masks_2.to(device)
+
+            predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+            predictions = torch.argmax(predictions, dim=1)
+
+        elif task == 'paraphrase_regressor':
+            ids_1, attention_masks_1, ids_2, attention_masks_2 = \
+                (batch['token_ids_1'], batch['attention_masks_1'],
+                 batch['token_ids_2'], batch['attention_masks_2'])
+
+            ids_1 = ids_1.to(device)
+            ids_2 = ids_2.to(device)
+            attention_masks_1 = attention_masks_1.to(device)
+            attention_masks_2 = attention_masks_2.to(device)
+
+            predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+        else:
+            raise NotImplementedError
+        result += predictions.cpu().numpy().tolist()
+
+    result = pd.DataFrame(
+        {'prediction': result},
+        index=dataloader.dataset.ids
+    )
 
     return result
 

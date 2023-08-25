@@ -3,6 +3,7 @@ notebooks
 todo
 logs
 checkpoints
+test_run.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
