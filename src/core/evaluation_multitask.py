@@ -41,7 +41,7 @@ def evaluate_model_multitask(
     if type(eval_dataloaders) is not list and type(eval_dataloaders) is not tuple:
         eval_dataloaders = [eval_dataloaders, ]
 
-    loss = {}
+    losses = {}
     metric = {}
 
     for i, dataloader in enumerate(eval_dataloaders):
@@ -85,11 +85,11 @@ def evaluate_model_multitask(
             running_metric += metrics[i](predictions, targets) * len(predictions)
 
         if criterions:
-            loss[task] = running_loss / len(dataloader.dataset)
+            losses[task] = running_loss / len(dataloader.dataset)
 
         metric[task] = running_metric / len(dataloader.dataset)
 
-    return {'metric': metric, 'loss': loss}
+    return {'metric': metric, 'loss': losses}
 
 
 def evaluation_message(result: dict)->str:

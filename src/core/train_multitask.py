@@ -28,7 +28,7 @@ def sample_task_from_pool(
     batches_left[number_chosen] -= 1
 
     if batches_left[number_chosen] == 0:
-        logger.debug(f'Removing dataloader number {number_chosen} since it is exhausted.')
+        logger.debug(f'Removing dataloader {task} since it is exhausted.')
         dataloaders.__delitem__(number_chosen)
         criterions.__delitem__(number_chosen)
         batches_left.__delitem__(number_chosen)
@@ -186,7 +186,7 @@ def train_validation_loop_multitask(
     # Initialization
     result = None
 
-    best_metric = -1
+    best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1}
     current_epoch = 0
 
     logger.info('Starting training and validating the model.')

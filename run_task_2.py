@@ -134,4 +134,7 @@ if __name__ == "__main__":
         verbose=False,
     )
 
+    logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
+                f'all the tasks.')
+    
     test_model_multitask(model, device, config_train['checkpoint_path'], test_dataloaders, config_prediction.values())
