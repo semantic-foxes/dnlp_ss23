@@ -117,7 +117,7 @@ class MultitaskBERT(nn.Module):
         bert_output_1 = self.bert(input_ids_1, attention_mask_1)['pooler_output']
         bert_output_2 = self.bert(input_ids_2, attention_mask_2)['pooler_output']
         embedding_processed_1 = self.paraphrase_regressor_1(bert_output_1)
-        embedding_processed_2 = self.paraphrase_regressor_1(bert_output_2)
+        embedding_processed_2 = self.paraphrase_regressor_2(bert_output_2)
         # Since the target is 0-5 in this task as well :/
         result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 5
         return result
