@@ -8,7 +8,7 @@ from src.models import MultitaskBERT
 from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
-from src.core import train_validation_loop_multitask, generate_predictions
+from src.core import train_validation_loop_multitask, test_model_multitask
 from src.metrics import accuracy, pearson_correlation
 
 
@@ -134,12 +134,4 @@ if __name__ == "__main__":
         verbose=False,
     )
 
-    for test_loader, save_path in zip(test_dataloaders, config_prediction.values()):
-        predictions = generate_predictions(
-            model=model,
-            dataloader=test_loader,
-            device=device,
-            dataloader_message=test_loader.dataset.task
-        )
-
-        predictions.to_csv(save_path)
+    test_model_multitask(model, device, config_train['checkpoint_path'], test_dataloaders, config_prediction.values())

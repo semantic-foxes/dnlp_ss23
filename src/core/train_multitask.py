@@ -1,12 +1,12 @@
 import random
 from typing import Callable, Union, List
 
-import pandas as pd
 from tqdm import tqdm
 import wandb
 
 import torch
 from torch import nn
+from src.core.evaluation_multitask import evaluate_model_multitask, evaluation_message, sum_comparator
 
 from src.utils import logger, save_state
 
@@ -105,94 +105,6 @@ def train_one_epoch_multitask(
         pbar.close()
 
 
-@torch.no_grad()
-def evaluate_model_multitask(
-        model: nn.Module,
-        eval_dataloaders: List[torch.utils.data.DataLoader],
-        device: torch.device,
-        metrics: List[Callable],
-        criterions: List[torch.nn.Module] = None,
-        evaluation_set_name: str = 'train'
-) -> dict:
-    """
-    Evaluates the model using the given dataloader
-
-    Parameters
-    ----------
-    model : nn.Module,
-    eval_dataloaders : torch.utils.data.Dataloader
-    device : torch.device
-    metric : Callable
-        The metric function. It is expected to have the signature of
-        (y_true, y_predicted).
-    criterion : torch.nn.Module
-        The criterion (loss function) to use.
-    dataloader_message : str
-        The message to be put in the `tqdm` progress bar.
-
-    Returns
-    -------
-    result: [float, float] or float
-        The resulting criterion and metric or just the metric if no criterion
-        is provided.
-    """
-
-    model.eval()
-    if type(eval_dataloaders) is not list and type(eval_dataloaders) is not tuple:
-        eval_dataloaders = [eval_dataloaders, ]
-
-    result = {}
-
-    for i, dataloader in enumerate(eval_dataloaders):
-        running_loss = 0
-        running_metric = torch.tensor(0, dtype=torch.float32).to(device)
-        task = dataloader.dataset.task
-
-        for batch in tqdm(dataloader, leave=False,
-                          desc=f'Evaluating on {task}'):
-            if task == 'sentiment':
-                ids, attention_masks, targets = \
-                    batch['token_ids'], batch['attention_masks'], batch['targets']
-
-                ids = ids.to(device)
-                attention_masks = attention_masks.to(device)
-                targets = targets.to(device)
-
-                predictions = model(task, ids, attention_masks)
-
-            elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
-                ids_1, attention_masks_1, ids_2, attention_masks_2, targets = \
-                    (batch['token_ids_1'], batch['attention_masks_1'],
-                     batch['token_ids_2'], batch['attention_masks_2'],
-                     batch['targets'])
-
-                ids_1 = ids_1.to(device)
-                ids_2 = ids_2.to(device)
-                attention_masks_1 = attention_masks_1.to(device)
-                attention_masks_2 = attention_masks_2.to(device)
-                targets = targets.to(device)
-
-                predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-
-            else:
-                raise NotImplementedError
-
-            if criterions is not None:
-                loss = criterions[i](predictions, targets)
-                running_loss += loss.item() * len(predictions)
-
-            running_metric += metrics[i](predictions, targets) * len(predictions)
-
-        if criterions:
-            result[
-                f'{task} {evaluation_set_name} loss'
-            ] = running_loss / len(dataloader.dataset)
-
-        result[
-            f'{task} {evaluation_set_name} metric'
-        ] = running_metric / len(dataloader.dataset)
-
-    return result
 
 
 def train_validation_loop_multitask(
@@ -207,7 +119,8 @@ def train_validation_loop_multitask(
         watcher: Union[str, None] = None,
         verbose: bool = True,
         save_best_path: str = None,
-        overall_config: dict = None
+        overall_config: dict = None,
+        metric_comparator: Callable[[dict, dict], bool] = sum_comparator
 ) -> dict:
     """
     Run the train loop with selecting parameters while validating the model
@@ -241,6 +154,8 @@ def train_validation_loop_multitask(
     overall_config : dict
         The overall config (should include all the data about the model and
         the datasets, etc.). Required if the save_path is provided.
+    metric_comparator: Callable[[dict, dict], bool]
+        Compares evaluated metrics 
 
     Returns
     -------
@@ -271,7 +186,7 @@ def train_validation_loop_multitask(
     # Initialization
     result = None
 
-    best_metric = 0
+    best_metric = -1
     current_epoch = 0
 
     logger.info('Starting training and validating the model.')
@@ -292,16 +207,10 @@ def train_validation_loop_multitask(
             train_loader,
             device,
             metric,
-            criterion,
-            evaluation_set_name='train'
+            criterion
         )
 
-        score_strings = [f'{key}: {value:.3f}'
-                         for key, value in epoch_train_scores.items()]
-        score_message = ', '.join(score_strings)
-
-        logger.info(f'Finished training epoch {current_epoch}, '
-                    + score_message)
+        logger.info(f'Finished training epoch {current_epoch},  {evaluation_message(epoch_train_scores)}')
 
         # Validation
         epoch_val_scores = evaluate_model_multitask(
@@ -309,24 +218,15 @@ def train_validation_loop_multitask(
             val_loader,
             device,
             metric,
-            criterion,
-            evaluation_set_name='val'
+            criterion
         )
 
-        score_strings = [f'{key}: {value:.3f}'
-                         for key, value in epoch_val_scores.items()]
-        score_message = ', '.join(score_strings)
-
-        logger.info(f'Finished validating epoch {current_epoch}, '
-                    + score_message)
+        logger.info(f'Finished validating epoch {current_epoch}, {evaluation_message(epoch_val_scores)}')
 
         if result is None:
             result = {}
-            for key, value in {**epoch_train_scores, **epoch_val_scores}.items():
-                result[key] = [value, ]
-        else:
-            for key, value in {**epoch_train_scores, **epoch_val_scores}.items():
-                result[key].append(value)
+
+        result[current_epoch] = {'train': epoch_train_scores, 'val': epoch_val_scores}
 
         # Upload to watcher
         if watcher is not None:
@@ -336,70 +236,12 @@ def train_validation_loop_multitask(
                 logger.error(f'Error loading to watcher at epoch {current_epoch}')
                 raise e
 
-        # TODO: What is the criterion for model saving?
-        # if save_best_path is not None and val_metric > best_metric:
-        #     save_state(model, optimizer, overall_config, save_best_path)
+        if save_best_path is not None and metric_comparator(epoch_val_scores['metric'], best_metric):
+            best_metric = epoch_val_scores['metric']
+            save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1
 
     logger.info(f'Finished training and validation the model.')
-
-    return result
-
-@torch.no_grad()
-def generate_predictions_multitask(
-        model: nn.Module,
-        dataloaders: torch.utils.data.DataLoader,
-        device: torch.device,
-        dataloader_message: str = 'test'
-) -> pd.DataFrame:
-    model.eval()
-    if type(dataloaders) is not list and type(dataloaders) is not tuple:
-        eval_dataloaders = [dataloaders, ]
-
-    result = {}
-
-    for i, dataloader in enumerate(eval_dataloaders):
-        task = dataloader.dataset.task
-
-        for batch in tqdm(dataloader, leave=False,
-                          desc=f'Evaluating on {task}'):
-            if task == 'sentiment':
-                ids, attention_masks = \
-                    batch['token_ids'], batch['attention_masks']
-
-                ids = ids.to(device)
-                attention_masks = attention_masks.to(device)
-
-                predictions = model(task, ids, attention_masks)
-                predictions = torch.argmax(predictions, dim=1)
-
-            elif task == 'paraphrase_classifier':
-                ids_1, attention_masks_1, ids_2, attention_masks_2 = \
-                    (batch['token_ids_1'], batch['attention_masks_1'],
-                     batch['token_ids_2'], batch['attention_masks_2'])
-
-                ids_1 = ids_1.to(device)
-                ids_2 = ids_2.to(device)
-                attention_masks_1 = attention_masks_1.to(device)
-                attention_masks_2 = attention_masks_2.to(device)
-
-                predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-                predictions = torch.argmax(predictions, dim=1)
-
-            elif task == 'paraphrase_regressor':
-                ids_1, attention_masks_1, ids_2, attention_masks_2 = \
-                    (batch['token_ids_1'], batch['attention_masks_1'],
-                     batch['token_ids_2'], batch['attention_masks_2'])
-
-                ids_1 = ids_1.to(device)
-                ids_2 = ids_2.to(device)
-                attention_masks_1 = attention_masks_1.to(device)
-                attention_masks_2 = attention_masks_2.to(device)
-
-                predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-            else:
-                raise NotImplementedError
-
 
     return result
