@@ -10,7 +10,7 @@ from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions_multitask
 from src.metrics import accuracy, pearson_correlation
-from src.utils.good_utils import load_state
+from src.utils.model_utils import load_state
 
 
 if __name__ == "__main__":
