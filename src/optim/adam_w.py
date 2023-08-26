@@ -1,3 +1,4 @@
+import math
 from typing import Callable, Iterable, Tuple
 
 import torch
@@ -81,7 +82,7 @@ class AdamW(Optimizer):
                 # Parameter update
                 p.data.add_(-a * m / (torch.sqrt(v) + group['eps']))
                 # Weight decay
-                if group['weight_decay'] != 0:
+                if group['weight_decay']:
                     p.data.add_(-p.data * alpha * group['weight_decay'])
 
         return loss

@@ -31,6 +31,6 @@ train:
   checkpoint_path: 'checkpoints/sst_classifier.pt'
 
 predict:
-  sst_prediction_path: 'predictions/sst/sst_prediction.csv'
-  quora_prediction_path: 'predictions/quora/quora_prediction.csv'
-  sts_prediction_path: 'predictions/sts/sts_prediction.csv'
+  sst_prediction_path: 'predictions/sst_prediction.csv'
+  quora_prediction_path: 'predictions/quora_prediction.csv'
+  sts_prediction_path: 'predictions/sts_prediction.csv'

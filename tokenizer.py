@@ -30,7 +30,7 @@ PRETRAINED_VOCAB_FILES_MAP = {
     }
 }
 PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "bert-base-uncased": 150
+    "bert-base-uncased": 512
 }
 PRETRAINED_INIT_CONFIGURATION = {
     "bert-base-uncased": {"do_lower_case": True}

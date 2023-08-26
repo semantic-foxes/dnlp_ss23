@@ -107,7 +107,7 @@ def train_multitask(args):
             save_model(model, optimizer, args, config, args.filepath)
 
         print(f"Epoch {epoch}: train loss :: {train_loss :.3f}, train acc :: {train_acc :.3f}, dev acc :: {dev_acc :.3f}")
-
+    print(f"After {epoch+1} epochs: best dev acc :: {best_dev_acc :.3f}")
 
 
 def test_model(args):
