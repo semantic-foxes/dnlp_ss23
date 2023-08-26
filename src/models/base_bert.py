@@ -75,53 +75,6 @@ class BertPreTrainedModel(nn.Module):
 
         return result
 
-    # PyTorch's `_load_from_state_dict` does not copy parameters in a module's descendants
-    # so we need to apply the function recursively.
-    # TODO: Why do we even have any recursions here?
-    @staticmethod
-    def load(
-            module: nn.Module,
-            state_dict: dict,
-            prefix: str = '',
-            local_metadata: dict = None,
-            missing_keys: List[str] = None,
-            unexpected_keys: List[str] = None,
-            error_msgs: List[str] = None,
-
-    ):
-        if error_msgs is None:
-            error_msgs = []
-        if unexpected_keys is None:
-            unexpected_keys = []
-        if missing_keys is None:
-            missing_keys = []
-
-        module._load_from_state_dict(
-            state_dict=state_dict,
-            prefix=prefix,
-            local_metadata=local_metadata,
-            strict=True,
-            missing_keys=missing_keys,
-            unexpected_keys=unexpected_keys,
-            error_msgs=error_msgs,
-        )
-        for name, child in module._modules.items():
-            if child is not None:
-                child_prefix = prefix + name + "."
-                if local_metadata is not None:
-                    child_metadata = local_metadata.get(child_prefix[:-1], {})
-                else:
-                    child_metadata = None
-
-                BertPreTrainedModel.load(
-                    child,
-                    state_dict=state_dict,
-                    prefix=child_prefix,
-                    local_metadata=child_metadata,
-                    missing_keys=missing_keys,
-                    unexpected_keys=unexpected_keys,
-                    error_msgs=error_msgs
-                )
 
     @classmethod
     def from_pretrained(
@@ -213,36 +166,52 @@ class BertPreTrainedModel(nn.Module):
         if metadata is not None:
             state_dict._metadata = metadata
 
-        # Trying to "in-a-smart-way" detect the errors.
         your_bert_params = [f"bert.{x[0]}" for x in model.named_parameters()]
         for k in state_dict:
             if k not in your_bert_params and not k.startswith("cls."):
-                print(k)
-                #possible_rename = [x for x in k.split(".")[1:-1] if x in m.values()]  # TODO: Fix, m = @staticclass thing
-                raise ValueError('Error loading weights to your model')
-                    #f"{k} cannot be reload to your model, one/some of {possible_rename} we provided have been renamed")
+                # possible_rename = [x for x in k.split(".")[1:-1] if x in m.values()]
+                raise ValueError(
+                    f"{k} cannot be reload to your model, one/some of params we provided have been renamed"
+                )
+
+        # PyTorch's `_load_from_state_dict` does not copy parameters in a module's descendants
+        # so we need to apply the function recursively.
+        def load(module: nn.Module, prefix=""):
+            local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
+            module._load_from_state_dict(
+                state_dict,
+                prefix,
+                local_metadata,
+                True,
+                missing_keys,
+                unexpected_keys,
+                error_msgs,
+            )
+            for name, child in module._modules.items():
+                if child is not None:
+                    load(child, prefix + name + ".")
 
         # Make sure we are able to load base models as well as derived models (with heads)
-        has_prefix_module = any(s.startswith(cls.base_model_prefix) for s in state_dict.keys())
+        start_prefix = ""
+        model_to_load = model
+        has_prefix_module = any(
+            s.startswith(cls.base_model_prefix) for s in state_dict.keys()
+        )
         if not hasattr(model, cls.base_model_prefix) and has_prefix_module:
-            prefix = cls.base_model_prefix + ''
-            cls.load(model, state_dict, prefix=prefix)
-
-        elif hasattr(model, cls.base_model_prefix) and not has_prefix_module:
+            start_prefix = cls.base_model_prefix + "."
+        if hasattr(model, cls.base_model_prefix) and not has_prefix_module:
             model_to_load = getattr(model, cls.base_model_prefix)
-            cls.load(model_to_load, state_dict)
+        load(model_to_load, prefix=start_prefix)
 
-            if model.__class__.__name__ != model_to_load.__class__.__name__:
-                base_state_dict_keys = model_to_load.state_dict().keys()
-                # Exclude base model prefix from the head.
-                head_state_dict_keys = [
-                    key.split(cls.base_model_prefix + ".")[-1]
-                    for key in model.state_dict().keys()
-                ]
-                missing_keys.extend(set(head_state_dict_keys) - set(base_state_dict_keys))
-
-        else:
-            raise Exception
+        if model.__class__.__name__ != model_to_load.__class__.__name__:
+            base_model_state_dict = model_to_load.state_dict().keys()
+            head_model_state_dict_without_base_prefix = [
+                key.split(cls.base_model_prefix + ".")[-1]
+                for key in model.state_dict().keys()
+            ]
+            missing_keys.extend(
+                head_model_state_dict_without_base_prefix - base_model_state_dict
+            )
 
         # Some models may have keys that are not in the state by design,
         # removing them before needlessly warning the user.
@@ -260,6 +229,9 @@ class BertPreTrainedModel(nn.Module):
                 f'Error(s) in loading state_dict for {model.__class__.__name__}:\n'
                 f'{error_messages_string}'
             )
+
+        # Set model in evaluation mode to deactivate DropOut modules by default
+        model.eval()
 
         if output_loading_info:
             loading_info = {
