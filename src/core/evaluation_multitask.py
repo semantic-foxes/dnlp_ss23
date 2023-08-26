@@ -4,6 +4,7 @@ from tqdm import tqdm
 import torch
 from torch import nn
 
+from src.utils import logger
 
 
 @torch.no_grad()
@@ -88,8 +89,11 @@ def evaluate_model_multitask(
             losses[task] = running_loss / len(dataloader.dataset)
 
         metric[task] = running_metric / len(dataloader.dataset)
+    
+    result = {'metric': metric, 'loss': losses}
+    logger.info(evaluation_message(result))
 
-    return {'metric': metric, 'loss': losses}
+    return result
 
 
 def evaluation_message(result: dict)->str:

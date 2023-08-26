@@ -3,6 +3,7 @@ import pandas as pd
 
 from torch.utils.data import DataLoader
 from torch import nn
+from src.core.evaluation_multitask import evaluate_model_multitask
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
@@ -120,14 +121,16 @@ if __name__ == "__main__":
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
 
+    metrics = [accuracy, accuracy, pearson_correlation]
+    criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
+
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
-
     train_validation_loop_multitask(
         model=model,
         optimizer=optimizer,
-        criterion=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
-        metric=[accuracy, accuracy, pearson_correlation],
+        criterion=criteria,
+        metric=metrics,
         train_loader=train_dataloaders,
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
@@ -141,5 +144,7 @@ if __name__ == "__main__":
 
     logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
+    
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
     
     generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values())

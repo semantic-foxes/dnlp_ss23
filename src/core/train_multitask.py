@@ -6,7 +6,7 @@ import wandb
 
 import torch
 from torch import nn
-from src.core.evaluation_multitask import evaluate_model_multitask, evaluation_message, sum_comparator
+from src.core.evaluation_multitask import evaluate_model_multitask, sum_comparator
 
 from src.utils import logger, save_state
 
@@ -202,6 +202,9 @@ def train_validation_loop_multitask(
             current_epoch=current_epoch
         )
 
+        logger.info(f'Finished training epoch {current_epoch}')
+
+        logger.info(f'Training results for epoch {current_epoch}')
         epoch_train_scores = evaluate_model_multitask(
             model,
             train_loader,
@@ -210,9 +213,8 @@ def train_validation_loop_multitask(
             criterion
         )
 
-        logger.info(f'Finished training epoch {current_epoch},  {evaluation_message(epoch_train_scores)}')
-
         # Validation
+        logger.info(f'Validation results for epoch {current_epoch}')
         epoch_val_scores = evaluate_model_multitask(
             model,
             val_loader,
@@ -221,7 +223,6 @@ def train_validation_loop_multitask(
             criterion
         )
 
-        logger.info(f'Finished validating epoch {current_epoch}, {evaluation_message(epoch_val_scores)}')
 
         if result is None:
             result = {}
