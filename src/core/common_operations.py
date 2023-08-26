@@ -338,7 +338,7 @@ def train_validation_loop(
 
         current_epoch += 1
 
-    logger.info(f'Finished training and validation the model.')
+    logger.info(f"Finished training and validation the model. Best val metric: {best_metric:.3f}")
 
     return train_loss_array, val_loss_array, train_metric_array, val_metric_array
 

@@ -75,8 +75,9 @@ class SentenceSimilarityDataset(Dataset):
             binary_task: bool = True,
             return_targets: bool = True,
             local_only: bool = False,
+            index_col: int = 0
     ):
-        dataset = pd.read_csv(dataset_path, index_col=0, delimiter='\t')
+        dataset = pd.read_csv(dataset_path, index_col=index_col, delimiter='\t')
 
         # Data handling
         dataset.index = dataset['id']

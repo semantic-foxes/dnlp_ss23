@@ -53,7 +53,8 @@ if __name__ == "__main__":
     )
     quora_test_dataset = SentenceSimilarityDataset(
         config_quora['test_path'],
-        return_targets=False
+        return_targets=False,
+        index_col=False
     )
 
     sts_train_dataset = SentenceSimilarityDataset(
@@ -102,6 +103,7 @@ if __name__ == "__main__":
             num_workers=config_dataloader['num_workers'],
         )
         for x in [sst_test_dataset, quora_test_dataset, sts_test_dataset]
+        # the order of datasets must match the order in config.yaml (predictions save_path)
     ]
 
     model = MultitaskBERT(

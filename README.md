@@ -1,6 +1,20 @@
-# Tasks
+# DNLP SS23 Final Project - Multitask BERT
+Team: G04	Semantic Foxes
 
-## Part 1: Stanford Sentiment Treebank
+### Acknowledgements
+
+The project description, partial implementation, and scripts were adapted from the default final project for the Stanford [CS 224N class](https://web.stanford.edu/class/cs224n/) developed by Gabriel Poesia, John, Hewitt, Amelie Byun, John Cho, and their (large) team (Thank you!) 
+
+The BERT implementation part of the project was adapted from the "minbert" assignment developed at Carnegie Mellon University's [CS11-711 Advanced NLP](http://phontron.com/class/anlp2021/index.html),
+created by Shuyan Zhou, Zhengbao Jiang, Ritam Dutt, Brendon Boldt, Aditya Veerubhotla, and Graham Neubig  (Thank you!)
+
+Parts of the code are from the [`transformers`](https://github.com/huggingface/transformers) library ([Apache License 2.0](./LICENSE)).
+
+Parts of the scripts and code were altered by [Jan Philip Wahle](https://jpwahle.com/) and [Terry Ruas](https://terryruas.com/).
+
+# Datasets
+
+### Stanford Sentiment Treebank
 
 Using a movie review sentence, predict the movie's sentiment, which can be one of the following:
 - Negative
@@ -14,11 +28,6 @@ This is a multi-label classification problem. The pre-split data is available in
 - `data/ids-sst-dev.csv` (Validation set, 1101 entries)
 - `data/ids-sst-test-student.csv` (Test set, 2210 entries)
 
-## Part 2
-
-### Stanford Sentiment Treebank
-This dataset is identical to the one described in Part 1.
-
 ### Quora Dataset
 The Quora dataset consists of pairs of questions, labeled to indicate if the questions are paraphrases of one another. This is a binary classification problem. The pre-split data is available in:
 - `data/quora-train.csv` (Training set, 141506 entries)
@@ -31,25 +40,30 @@ This dataset provides pairs of sentences and scores reflecting the similarity be
 - `data/sts-dev.csv` (Validation set, 864 entries)
 - `data/sts-test-student.csv` (Test set, 1726 entries)
 
-# Running the Code
+## Setup instructions
+The project is developed in Python 3.8. 
 
-## Setup
-The project is developed in Python 3.8. To install necessary dependencies, run:
+* Follow `setup_gwdg.sh` to properly setup a conda environment and install dependencies.
+```
+source setup_gwdg.sh
+```
+
+* Alternatively, to install necessary dependencies, run:
 ```
 pip3 install -r requirements.txt
 ```
 We recommend using a virtual environment like `conda` or `venv`.
 
 ## Configuration
-The `config.yaml` file streamlines workflow by centralizing the model's parameters. As the tasks share similarities and use primarily the BERT core, a single config file serves both tasks.
+The `config.yaml` file streamlines workflow by centralizing the model's parameters.
 
 ## Execution
-- For Task 1:
+- For Sentiment Classification Task, run:
 ```
 python3 run_task_1.py
 ```
 
-- For Task 2:
+- For Multiple Task Training, run:
 ```
 python3 run_task_2.py
 ```
