@@ -7,7 +7,7 @@ import torch
 from torch import nn
 
 @torch.no_grad()
-def generate_predictions_multitask(
+def generate_predictions(
         model: nn.Module,
         dataloader: torch.utils.data.DataLoader,
         device: torch.device,
@@ -85,22 +85,15 @@ def generate_predictions_multitask(
     return result
 
 @torch.no_grad()
-def test_model_multitask(
+def generate_predictions_multitask(
         model: nn.Module,
         device: torch.device,
-        modelpath: str,
         dataloaders: torch.utils.data.DataLoader,
         filepaths: List[str],
 ) -> None:
-    
-    saved = torch.load(modelpath)
-
-    model.load_state_dict(saved['model'])
-    model = model.to(device)
-    print(f"Loaded model to test from {modelpath}")
 
     for test_loader, save_path in zip(dataloaders, filepaths):
-        predictions = generate_predictions_multitask(
+        predictions = generate_predictions(
             model=model,
             dataloader=test_loader,
             device=device,

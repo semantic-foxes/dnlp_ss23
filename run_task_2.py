@@ -8,8 +8,9 @@ from src.models import MultitaskBERT
 from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
-from src.core import train_validation_loop_multitask, test_model_multitask
+from src.core import train_validation_loop_multitask, generate_predictions_multitask
 from src.metrics import accuracy, pearson_correlation
+from src.utils.good_utils import load_state
 
 
 if __name__ == "__main__":
@@ -134,7 +135,9 @@ if __name__ == "__main__":
         verbose=False,
     )
 
+    load_state(model, device,  config_train['checkpoint_path'])
+
     logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
     
-    test_model_multitask(model, device, config_train['checkpoint_path'], test_dataloaders, config_prediction.values())
+    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values())
