@@ -29,6 +29,7 @@ train:
   n_epochs: 10
   lr: 0.001
   checkpoint_path: 'checkpoints/base_classifier.pt'
+  data_combine: 'sequential' # 'exhaust' or 'sequential' or 'min' or 'continuos'
 
 predict:
   sst_prediction_path: 'predictions/sst_prediction.csv'

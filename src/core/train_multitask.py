@@ -7,7 +7,9 @@ import wandb
 import torch
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask, sum_comparator
+from src.core.train_epoch.train_epoch_continuos import train_continuos
 from src.core.train_epoch.train_epoch_exhaust import train_exhaust
+from src.core.train_epoch.train_epoch_min import train_min
 from src.core.train_epoch.train_epoch_sequential import train_sequential
 
 
@@ -22,6 +24,7 @@ def train_one_epoch_multitask(
         data_combine: str = 'sequential',
         verbose: bool = True,
         current_epoch: int = None,
+        prev_state = None
 ):
     model.train()
     if data_combine == 'exhaust':
@@ -31,7 +34,17 @@ def train_one_epoch_multitask(
     if data_combine == 'sequential':
         train_sequential(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
         return 
+    
+    if data_combine == 'min':
+        train_min(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
+        return 
 
+    if data_combine == 'continuos':
+        return train_continuos(
+            model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch, 
+            prev_data_iters=prev_state
+        )
+         
 
     message = f'{data_combine} is not known data combine strategy.'
     logger.error(message)
@@ -124,9 +137,10 @@ def train_validation_loop_multitask(
     current_epoch = 0
 
     logger.info('Starting training and validating the model.')
+    epoch_train_state = None
     for _ in pbar:
         # Train
-        train_one_epoch_multitask(
+        epoch_train_state = train_one_epoch_multitask(
             model,
             train_loader,
             optimizer,
@@ -134,7 +148,8 @@ def train_validation_loop_multitask(
             device,
             verbose=True,
             current_epoch=current_epoch,
-            data_combine=data_combine
+            data_combine=data_combine,
+            prev_state=epoch_train_state
         )
 
         logger.info(f'Finished training epoch {current_epoch}')

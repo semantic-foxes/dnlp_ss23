@@ -145,7 +145,7 @@ if __name__ == "__main__":
         device=device,
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
-        data_combine="exhaust",
+        data_combine=config_train['data_combine'],
         verbose=False,
     )
 

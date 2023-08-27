@@ -50,7 +50,7 @@ def train_exhaust(
     if verbose:
         total_len = sum([len(x.dataset) for x in train_dataloaders])
         pbar = tqdm(total=total_len, leave=False,
-                    desc=f'Training epoch {current_epoch is None if "" else current_epoch} on all tasks')
+                    desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks')
 
 
     not_exhausted_dataloaders = [iter(x) for x in train_dataloaders]
