@@ -82,7 +82,7 @@ class SentenceSimilarityDataset(Dataset):
         # Data handling
         dataset.index = dataset['id']
         dataset.drop('id', axis=1, inplace=True)
-        dataset.dropna(inplace=True) # TODO: Modify for a correct test behaviour
+        dataset.dropna(inplace=True)
         self.dataset = dataset[['sentence1', 'sentence2']]
         self.dataset.loc[:, 'sentence1'] = self.dataset['sentence1'].apply(self.preprocess_string)
         self.dataset.loc[:, 'sentence2'] = self.dataset['sentence2'].apply(self.preprocess_string)
