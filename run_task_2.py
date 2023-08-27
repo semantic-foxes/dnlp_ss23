@@ -1,3 +1,4 @@
+import argparse
 import yaml
 import pandas as pd
 
@@ -13,9 +14,16 @@ from src.core import train_validation_loop_multitask, generate_predictions_multi
 from src.metrics import accuracy, pearson_correlation
 from src.utils.model_utils import load_state
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default='config.yaml')
+
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
-    with open('config.yaml', 'r') as f:
+    args = get_args()
+    with open(args.config, 'r') as f:
         CONFIG = yaml.load(f, Loader=yaml.FullLoader)
 
     config_sst = CONFIG['data']['sst_dataset']

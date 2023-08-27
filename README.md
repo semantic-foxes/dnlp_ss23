@@ -51,8 +51,7 @@ This dataset provides pairs of sentences and scores reflecting the similarity be
 
 | Model | SST | Quora | STS |
 |---|---|---|---|
-| BERT<sub>pretrain</sub> | 0.396 | 0.648 | 0.240 |
-
+| BERT<sub>pretrain</sub> | 0.387 | 0.699 | 0.261 |
 ### BERT<sub>pretrain</sub>
 Using pretrained BERT with frozen weights, we used simple classifiers for SST and Quora datasets and a simple regressor for STS dataset.
 
