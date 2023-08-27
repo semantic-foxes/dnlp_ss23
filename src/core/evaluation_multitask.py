@@ -76,6 +76,9 @@ def evaluate_model_multitask(
 
                 predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
 
+                if task == 'paraphrase_regressor':
+                    # projection usually decreases error
+                    predictions = torch.clip(predictions, 0, 5)
             else:
                 raise NotImplementedError
 
