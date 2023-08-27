@@ -52,7 +52,9 @@ This dataset provides pairs of sentences and scores reflecting the similarity be
 | Model | SST | Quora | STS |
 |---|---|---|---|
 | Pretrain | 0.387 | 0.699 | 0.261 |
+
 ### Pretrain model
+
 Using pretrained BERT with frozen weights, we used simple classifiers for SST and Quora datasets and a simple regressor for STS dataset.
 
 ## Setup instructions
@@ -86,6 +88,7 @@ python3 run_task_1.py
 ```
 
 - For Multiple Task Training, run:
+
 ```
 python3 run_task_2.py
 ```
@@ -121,4 +124,5 @@ The repository has undergone significant changes. Here's a brief overview:
     ```
     python3 tests/<test_filename>
     ```
+
 **All the commands are to be run from the project root.**
