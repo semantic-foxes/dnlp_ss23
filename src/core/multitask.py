@@ -210,7 +210,7 @@ def train_validation_loop_multitask(
         overall_config: dict = None
 ) -> dict:
     """
-    Run the train loop with selecting parameters while validating the model
+    Run the train loop with selected parameters while validating the model
     after each epoch.
 
     Parameters
@@ -345,6 +345,65 @@ def train_validation_loop_multitask(
     logger.info(f'Finished training and validation the model.')
 
     return result
+
+
+def train_loop_multitask(
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        criterion: List[torch.nn.Module],
+        train_loader: List[torch.utils.data.DataLoader],
+        n_epochs: int,
+        device: torch.device,
+        verbose: bool = True
+):
+    """
+    Run the train loop with selected parameters.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model to train.
+    optimizer : torch.optim.Optimizer
+        The optimizer to use.
+    criterion : torch.nn.Module
+        The criterion (Loss function) to use (for example, MSELoss).
+    train_loader : torch.utils.data.DataLoader
+        The train DataLoader.
+    n_epochs : int
+        The number of epochs to train.
+    device : torch.device
+        The device to use while training.
+    verbose : bool
+        Whether the print statements are to be provided.
+    """
+
+    # Progress bar handling
+    if verbose:
+        pbar = tqdm(range(n_epochs))
+    else:
+        pbar = range(n_epochs)
+
+    current_epoch = 0
+
+    logger.info('Starting training and validating the model.')
+    for _ in pbar:
+        # Train
+        train_one_epoch_multitask(
+            model,
+            train_loader,
+            optimizer,
+            criterion,
+            device,
+            verbose=True,
+            current_epoch=current_epoch
+        )
+
+        logger.info(f'Finished training epoch {current_epoch}')
+
+        current_epoch += 1
+
+    logger.info(f'Finished training and validation the model.')
+
 
 @torch.no_grad()
 def generate_predictions_multitask(

@@ -1,0 +1,21 @@
+n_trials: 20
+
+bert_model:
+  hidden_dropout_prob:
+    low: 0.1
+    high: 0.5
+  attention_dropout_prob:
+    low: 0.1
+    high: 0.5
+  mode:
+    - 'finetune'
+    - 'pretrain'
+
+train:
+  n_epochs:
+    low: 5
+    high: 15
+  lr:
+    low: 0.00001
+    high: 0.01
+

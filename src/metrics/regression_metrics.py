@@ -15,4 +15,3 @@ def pearson_correlation(
     result = numerator / torch.sqrt(pred_sigma * true_sigma)
 
     return result
-
