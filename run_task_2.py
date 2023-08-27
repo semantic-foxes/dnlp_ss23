@@ -1,20 +1,29 @@
+import argparse
 import yaml
 import pandas as pd
 
-from sklearn.metrics import accuracy_score, r2_score
-
 from torch.utils.data import DataLoader
 from torch import nn
+from src.core.evaluation_multitask import evaluate_model_multitask
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions_multitask
+from src.metrics import accuracy, pearson_correlation
+from src.utils.model_utils import load_state
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default='config.yaml')
+
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
-    with open('config.yaml', 'r') as f:
+    args = get_args()
+    with open(args.config, 'r') as f:
         CONFIG = yaml.load(f, Loader=yaml.FullLoader)
 
     config_sst = CONFIG['data']['sst_dataset']
@@ -106,8 +115,6 @@ if __name__ == "__main__":
         # the order of datasets must match the order in config.yaml (predictions save_path)
     ]
 
-    print([len(x.dataset) for x in train_dataloaders])
-
     model = MultitaskBERT(
         num_labels=5,
         option=config_bert['mode'],
@@ -122,14 +129,16 @@ if __name__ == "__main__":
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
 
+    metrics = [accuracy, accuracy, pearson_correlation]
+    criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
+
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
-
     train_validation_loop_multitask(
         model=model,
         optimizer=optimizer,
-        criterion=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
-        metric=[accuracy_score, accuracy_score, r2_score],
+        criterion=criteria,
+        metric=metrics,
         train_loader=train_dataloaders,
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
@@ -139,13 +148,11 @@ if __name__ == "__main__":
         verbose=False,
     )
 
-    for test_loader, save_path in zip(test_dataloaders, config_prediction):
-        predictions = generate_predictions_multitask(
-            model=model,
-            dataloader=test_loader,
-            device=device,
-            dataloader_message='test'
-        )
+    load_state(model, device,  config_train['checkpoint_path'])
 
-        result = predictions.set_index(test_loader.dataset.dataset.index)
-        result.to_csv(config_prediction[save_path])
+    logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
+                f'all the tasks.')
+    
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
+    
+    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values())

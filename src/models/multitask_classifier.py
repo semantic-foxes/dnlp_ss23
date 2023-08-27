@@ -106,4 +106,4 @@ class MultitaskBERT(nn.Module):
         bert_output_2 = self.bert(input_ids_2, attention_mask_2)['pooler_output']
         bert_output = torch.cat((bert_output_1, bert_output_2), dim=1)
         result = self.paraphrase_regressor(bert_output)
-        return result
+        return result.flatten()

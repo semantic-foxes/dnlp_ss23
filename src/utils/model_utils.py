@@ -84,3 +84,16 @@ def save_state(
                 f'and config to {filepath}.')
 
 
+
+@torch.no_grad()
+def load_state(
+        model: nn.Module,
+        device: torch.device,
+        filepath: str,
+) -> None:
+    
+    saved = torch.load(filepath)
+
+    model.load_state_dict(saved['model'])
+    model = model.to(device)
+    logger.info(f"Loaded model to test from {filepath}")
