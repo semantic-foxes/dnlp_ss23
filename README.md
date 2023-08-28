@@ -13,7 +13,7 @@ Parts of the code are from the [`transformers`](https://github.com/huggingface/t
 
 Parts of the scripts and code were altered by [Jan Philip Wahle](https://jpwahle.com/) and [Terry Ruas](https://terryruas.com/).
 
-# Datasets
+## Datasets
 
 ### Stanford Sentiment Treebank
 
@@ -47,13 +47,13 @@ This dataset provides pairs of sentences and scores reflecting the similarity be
 - `data/sts-dev.csv` (Validation set, 864 entries)
 - `data/sts-test-student.csv` (Test set, 1726 entries)
 
-# Methodology
+## Methodology
 
-## BERT setup
+### BERT setup
 
 We used `bert-base-uncased` BERT.
 
-## Data combination
+### Data combination
 
 Since 3 datasets have different amount of data, we can combine them differently for training purposes.
 There are several options for `data_combine`
@@ -63,26 +63,26 @@ There are several options for `data_combine`
 - `continuos` - 'infinitely' iterate over datasets (one epoch is determined by the minimal length among datasets)
 - `exhaust` - choose batch randomly without replacements
 
-## Best metric selection
+### Best metric selection
 
-In oreder to compare metrics, we use their sum.
+In order to compare metrics, we use their sum.
 
-# Experiments
+## Experiments
 
 | Model | SST | Quora | STS |
 |---|---|---|---|
 | Pretrain | 0.387 | 0.699 | 0.261 |
 | Finetune | 0.498 | 0.708 | 0.376 |
 
-## Pretrain model
+### Pretrain model
 
 Using pretrained BERT with frozen weights, we used simple classifiers for SST and Quora datasets and a simple regressor for STS dataset.
 
-## Finetune model
+### Finetune model
 
 Same approach as for Pretrain model, but now BERT weights are not frozen.
 
-# Setup instructions
+## Setup instructions
 
 The project is developed in Python 3.8.
 
@@ -127,7 +127,7 @@ python3 -m tests.sanity_check
 
 **All the commands are to be run from the project root.**
 
-# Codebase Overview
+## Codebase Overview
 
 The repository has undergone significant changes. Here's a brief overview:
 
