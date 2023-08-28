@@ -5,6 +5,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask
+from src.core.pretrain_multitask import pretrain_validation_loop_multitask
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
@@ -140,7 +141,8 @@ if __name__ == "__main__":
 
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
-    train_validation_loop_multitask(
+    train_fn = pretrain_validation_loop_multitask if config_bert["mode"]=='pretrain' else train_validation_loop_multitask
+    train_fn(
         model=model,
         optimizer=optimizer,
         criterion=criteria,
