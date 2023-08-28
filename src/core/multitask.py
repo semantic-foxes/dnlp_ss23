@@ -1,4 +1,4 @@
-import random
+import numpy as np
 from typing import Callable, Union, List
 
 import pandas as pd
@@ -11,29 +11,66 @@ from torch import nn
 from src.utils import logger, save_state
 
 
+def _batch_forward(
+        batch,
+        model,
+        task,
+        device,
+):
+    if task == 'sentiment':
+        ids, attention_masks = \
+            batch['token_ids'], batch['attention_masks']
+
+        ids = ids.to(device)
+        attention_masks = attention_masks.to(device)
+
+        predictions = model(task, ids, attention_masks)
+
+    elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
+        ids_1, attention_masks_1, ids_2, attention_masks_2 = \
+            (batch['token_ids_1'], batch['attention_masks_1'],
+             batch['token_ids_2'], batch['attention_masks_2'])
+
+        ids_1 = ids_1.to(device)
+        ids_2 = ids_2.to(device)
+        attention_masks_1 = attention_masks_1.to(device)
+        attention_masks_2 = attention_masks_2.to(device)
+
+        predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+
+    else:
+        raise NotImplementedError
+
+    return predictions
+
+
 def sample_task_from_pool(
         dataloaders: List[torch.utils.data.DataLoader],
         batches_left: List[int],
-        criterions: List[torch.nn.Module]
-) -> (int, torch.utils.data.DataLoader, torch.nn.Module):
+        criterions: List[torch.nn.Module],
+        force_task: Union[None, int] = None
+) -> (torch.Tensor, torch.nn.Module, str, int):
 
     if len(dataloaders) != len(criterions):
         raise AttributeError('Cannot sample: number of dataloaders is not the '
                              'same as the number of criterions provided.')
 
-    number_chosen = random.choice(range(len(dataloaders)))
+    if force_task is None:
+        probs = [x > 0 for x in batches_left]
+        scaled_probs = [x / sum(probs) for x in probs]
+        number_chosen = np.random.choice(range(len(batches_left)), p=scaled_probs)
+    else:
+        number_chosen = force_task
+
     batch = next(dataloaders[number_chosen])
     criterion = criterions[number_chosen]
     task = dataloaders[number_chosen]._dataset.task
     batches_left[number_chosen] -= 1
 
     if batches_left[number_chosen] == 0:
-        logger.debug(f'Removing dataloader number {number_chosen} since it is exhausted.')
-        dataloaders.__delitem__(number_chosen)
-        criterions.__delitem__(number_chosen)
-        batches_left.__delitem__(number_chosen)
+        logger.debug(f'Dataloader number {number_chosen} is exhausted.')
 
-    return batch, criterion, task
+    return batch, criterion, task, number_chosen
 
 
 def train_one_epoch_multitask(
@@ -44,6 +81,7 @@ def train_one_epoch_multitask(
         device: torch.device,
         verbose: bool = True,
         current_epoch: int = None,
+        weights: List[int] = [1, 1, 1]
 ):
     model.train()
 
@@ -61,45 +99,48 @@ def train_one_epoch_multitask(
     not_exhausted_criterions = [x for x in criterions]
 
     while len(not_exhausted_dataloaders) > 0:
-        batch, criterion, task = sample_task_from_pool(
+        optimizer.zero_grad()
+
+        batch, criterion, task, number_chosen = sample_task_from_pool(
             not_exhausted_dataloaders,
             batches_left,
             not_exhausted_criterions
         )
-        optimizer.zero_grad()
-        if task == 'sentiment':
-            ids, attention_masks, targets = \
-                batch['token_ids'], batch['attention_masks'], batch['targets']
 
-            ids = ids.to(device)
-            attention_masks = attention_masks.to(device)
-            targets = targets.to(device)
+        predictions = _batch_forward(batch, model, task, device)
 
-            predictions = model(task, ids, attention_masks)
-
-        elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
-            ids_1, attention_masks_1, ids_2, attention_masks_2, targets = \
-                (batch['token_ids_1'], batch['attention_masks_1'],
-                 batch['token_ids_2'], batch['attention_masks_2'],
-                 batch['targets'])
-
-            ids_1 = ids_1.to(device)
-            ids_2 = ids_2.to(device)
-            attention_masks_1 = attention_masks_1.to(device)
-            attention_masks_2 = attention_masks_2.to(device)
-            targets = targets.to(device)
-
-            predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-
-        else:
-            raise NotImplementedError
-
+        targets = batch['targets'].to(device)
         loss = criterion(predictions, targets).sum()
         loss.backward()
-        optimizer.step()
 
         if verbose:
             pbar.update(len(batch['targets']))
+
+        for _ in range(weights[number_chosen] - 1):
+            if batches_left[number_chosen] == 0:
+                break
+
+            batch, criterion, task, _ = sample_task_from_pool(
+                not_exhausted_dataloaders,
+                batches_left,
+                not_exhausted_criterions,
+                number_chosen
+            )
+
+            predictions = _batch_forward(batch, model, task, device)
+
+            targets = batch['targets'].to(device)
+            loss = criterion(predictions, targets).sum()
+            loss.backward()
+
+            if verbose:
+                pbar.update(len(batch['targets']))
+
+        if weights[number_chosen] - 1 > 0:
+            for param in model.parameters():
+                param.grad /= weights[number_chosen]
+
+        optimizer.step()
 
     if verbose:
         pbar.close()
@@ -204,10 +245,11 @@ def train_validation_loop_multitask(
         val_loader: List[torch.utils.data.DataLoader],
         n_epochs: int,
         device: torch.device,
+        weights: List[int] = [1, 1, 1],
         watcher: Union[str, None] = None,
         verbose: bool = True,
         save_best_path: str = None,
-        overall_config: dict = None
+        overall_config: dict = None,
 ) -> dict:
     """
     Run the train loop with selected parameters while validating the model
@@ -284,7 +326,8 @@ def train_validation_loop_multitask(
             criterion,
             device,
             verbose=True,
-            current_epoch=current_epoch
+            current_epoch=current_epoch,
+            weights=weights
         )
 
         epoch_train_scores = evaluate_model_multitask(
@@ -337,8 +380,12 @@ def train_validation_loop_multitask(
                 raise e
 
         # TODO: What is the criterion for model saving?
-        # if save_best_path is not None and val_metric > best_metric:
-        #     save_state(model, optimizer, overall_config, save_best_path)
+        val_metric = (epoch_val_scores['sentiment val metric']
+                      + epoch_val_scores['paraphrase_classifier val metric']
+                      + (epoch_val_scores['paraphrase_regressor val metric'] + 1) / 2)
+
+        if save_best_path is not None and val_metric > best_metric:
+            save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1
 
@@ -403,62 +450,3 @@ def train_loop_multitask(
         current_epoch += 1
 
     logger.info(f'Finished training and validation the model.')
-
-
-@torch.no_grad()
-def generate_predictions_multitask(
-        model: nn.Module,
-        dataloaders: torch.utils.data.DataLoader,
-        device: torch.device,
-        dataloader_message: str = 'test'
-) -> pd.DataFrame:
-    model.eval()
-    if type(dataloaders) is not list and type(dataloaders) is not tuple:
-        eval_dataloaders = [dataloaders, ]
-
-    result = {}
-
-    for i, dataloader in enumerate(eval_dataloaders):
-        task = dataloader.dataset.task
-
-        for batch in tqdm(dataloader, leave=False,
-                          desc=f'Evaluating on {task}'):
-            if task == 'sentiment':
-                ids, attention_masks = \
-                    batch['token_ids'], batch['attention_masks']
-
-                ids = ids.to(device)
-                attention_masks = attention_masks.to(device)
-
-                predictions = model(task, ids, attention_masks)
-                predictions = torch.argmax(predictions, dim=1)
-
-            elif task == 'paraphrase_classifier':
-                ids_1, attention_masks_1, ids_2, attention_masks_2 = \
-                    (batch['token_ids_1'], batch['attention_masks_1'],
-                     batch['token_ids_2'], batch['attention_masks_2'])
-
-                ids_1 = ids_1.to(device)
-                ids_2 = ids_2.to(device)
-                attention_masks_1 = attention_masks_1.to(device)
-                attention_masks_2 = attention_masks_2.to(device)
-
-                predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-                predictions = torch.argmax(predictions, dim=1)
-
-            elif task == 'paraphrase_regressor':
-                ids_1, attention_masks_1, ids_2, attention_masks_2 = \
-                    (batch['token_ids_1'], batch['attention_masks_1'],
-                     batch['token_ids_2'], batch['attention_masks_2'])
-
-                ids_1 = ids_1.to(device)
-                ids_2 = ids_2.to(device)
-                attention_masks_1 = attention_masks_1.to(device)
-                attention_masks_2 = attention_masks_2.to(device)
-
-                predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-            else:
-                raise NotImplementedError
-
-
-    return result

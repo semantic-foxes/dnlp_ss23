@@ -4,6 +4,7 @@ todo
 logs
 checkpoints
 test_run.py
+src/core/core.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
