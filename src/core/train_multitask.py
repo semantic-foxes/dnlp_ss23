@@ -67,7 +67,8 @@ def train_validation_loop_multitask(
         save_best_path: str = None,
         overall_config: dict = None,
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
-        data_combine: str = 'sequential'
+        data_combine: str = 'sequential',
+        skip_train_eval: int = 1
 ) -> dict:
     """
     Run the train loop with selecting parameters while validating the model
@@ -153,15 +154,15 @@ def train_validation_loop_multitask(
         )
 
         logger.info(f'Finished training epoch {current_epoch}')
-
-        logger.info(f'Training results for epoch {current_epoch}')
-        epoch_train_scores = evaluate_model_multitask(
-            model,
-            train_loader,
-            device,
-            metric,
-            criterion
-        )
+        if current_epoch % skip_train_eval == 0:
+            logger.info(f'Training results for epoch {current_epoch}')
+            epoch_train_scores = evaluate_model_multitask(
+                model,
+                train_loader,
+                device,
+                metric,
+                criterion
+            )
 
         # Validation
         logger.info(f'Validation results for epoch {current_epoch}')

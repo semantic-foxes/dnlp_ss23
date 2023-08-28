@@ -128,7 +128,7 @@ if __name__ == "__main__":
     model = model.to(device)
 
     if args.restore:
-        load_state(model, device, config_train['checkpoint_path'])
+        load_state(model, device, config_bert['weigths_path'])
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
@@ -151,6 +151,7 @@ if __name__ == "__main__":
         overall_config=CONFIG,
         data_combine=config_train['data_combine'],
         verbose=False,
+        skip_train_eval=config_train['skip_train_eval'],
     )
 
     load_state(model, device,  config_train['checkpoint_path'])
