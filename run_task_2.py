@@ -17,6 +17,7 @@ from src.utils.model_utils import load_state
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default='config.yaml')
+    parser.add_argument("--restore", action='store_true')
 
     args = parser.parse_args()
     return args
@@ -125,6 +126,9 @@ if __name__ == "__main__":
     )
 
     model = model.to(device)
+
+    if args.restore:
+        load_state(model, device, config_train['checkpoint_path'])
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
