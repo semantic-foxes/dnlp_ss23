@@ -13,6 +13,7 @@ def pearson_correlation(
     true_sigma = torch.sum((y_true - true_mean)**2)
 
     result = numerator / torch.sqrt(pred_sigma * true_sigma)
-
-    return result
+    
+    # it could be nan if targets are same: tensor([3.2000, 3.2000])
+    return torch.nan_to_num(result)
 

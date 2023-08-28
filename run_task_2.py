@@ -5,6 +5,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask
+from src.core.pretrain_multitask import pretrain_validation_loop_multitask
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
@@ -17,6 +18,7 @@ from src.utils.model_utils import load_state
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default='config.yaml')
+    parser.add_argument("--restore", action='store_true')
 
     args = parser.parse_args()
     return args
@@ -126,15 +128,21 @@ if __name__ == "__main__":
 
     model = model.to(device)
 
-    # Optimizer
-    optimizer = AdamW(model.parameters(), lr=config_train['lr'])
-
     metrics = [accuracy, accuracy, pearson_correlation]
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
+    best_metric = {}
+    if args.restore:
+        load_state(model, device, config_bert['weigths_path'])
+        best_metric = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
+
+    # Optimizer
+    optimizer = AdamW(model.parameters(), lr=config_train['lr'])
+
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
-    train_validation_loop_multitask(
+    train_fn = pretrain_validation_loop_multitask if config_bert["mode"]=='pretrain' else train_validation_loop_multitask
+    train_fn(
         model=model,
         optimizer=optimizer,
         criterion=criteria,
@@ -145,10 +153,13 @@ if __name__ == "__main__":
         device=device,
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
+        data_combine=config_train['data_combine'],
         verbose=False,
+        skip_train_eval=config_train['skip_train_eval'],
+        best_metric=best_metric,
     )
 
-    load_state(model, device,  config_train['checkpoint_path'])
+    load_state(model, device, config_train['checkpoint_path'])
 
     logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')

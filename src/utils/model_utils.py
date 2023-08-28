@@ -96,4 +96,4 @@ def load_state(
 
     model.load_state_dict(saved['model'])
     model = model.to(device)
-    logger.info(f"Loaded model to test from {filepath}")
+    logger.info(f"Loaded model from {filepath}")

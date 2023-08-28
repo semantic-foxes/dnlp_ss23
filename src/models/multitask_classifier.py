@@ -44,11 +44,9 @@ class MultitaskBERT(nn.Module):
 
         # Pretrain mode does not require updating bert parameters.
         if option == 'pretrain':
-            for param in self.bert.parameters():
-                param.requires_grad = False
+            self.requires_grad_(False)
         elif option == 'finetune':
-            for param in self.bert.parameters():
-                param.requires_grad = True
+            self.requires_grad_(True)
         else:
             raise AttributeError('Incorrect mode for BERT model. Should be'
                                  'either \'pretrain\' or \'finetune\'.')

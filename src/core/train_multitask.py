@@ -7,34 +7,13 @@ import wandb
 import torch
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask, sum_comparator
+from src.core.train_epoch.train_epoch_continuos import train_continuos
+from src.core.train_epoch.train_epoch_exhaust import train_exhaust
+from src.core.train_epoch.train_epoch_min import train_min
+from src.core.train_epoch.train_epoch_sequential import train_sequential
+
 
 from src.utils import logger, save_state
-
-
-def sample_task_from_pool(
-        dataloaders: List[torch.utils.data.DataLoader],
-        batches_left: List[int],
-        criterions: List[torch.nn.Module]
-) -> (int, torch.utils.data.DataLoader, torch.nn.Module):
-
-    if len(dataloaders) != len(criterions):
-        raise AttributeError('Cannot sample: number of dataloaders is not the '
-                             'same as the number of criterions provided.')
-
-    number_chosen = random.choice(range(len(dataloaders)))
-    batch = next(dataloaders[number_chosen])
-    criterion = criterions[number_chosen]
-    task = dataloaders[number_chosen]._dataset.task
-    batches_left[number_chosen] -= 1
-
-    if batches_left[number_chosen] == 0:
-        logger.debug(f'Removing dataloader {task} since it is exhausted.')
-        dataloaders.__delitem__(number_chosen)
-        criterions.__delitem__(number_chosen)
-        batches_left.__delitem__(number_chosen)
-
-    return batch, criterion, task
-
 
 def train_one_epoch_multitask(
         model: nn.Module,
@@ -42,68 +21,35 @@ def train_one_epoch_multitask(
         optimizer: torch.optim.Optimizer,
         criterions: List[torch.nn.Module],
         device: torch.device,
+        data_combine: str = 'sequential',
         verbose: bool = True,
         current_epoch: int = None,
+        prev_state = None
 ):
     model.train()
+    if data_combine == 'exhaust':
+        train_exhaust(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
+        return 
+    
+    if data_combine == 'sequential':
+        train_sequential(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
+        return 
+    
+    if data_combine == 'min':
+        train_min(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
+        return 
 
-    if verbose:
-        total_len = sum([len(x.dataset) for x in train_dataloaders])
-        if current_epoch is not None:
-            pbar = tqdm(total=total_len, leave=False,
-                        desc=f'Training epoch {current_epoch} on all tasks')
-        else:
-            pbar = tqdm(total=total_len, leave=False,
-                        desc=f'Training model on all tasks')
-
-    not_exhausted_dataloaders = [iter(x) for x in train_dataloaders]
-    batches_left = [len(x) for x in train_dataloaders]
-    not_exhausted_criterions = [x for x in criterions]
-
-    while len(not_exhausted_dataloaders) > 0:
-        batch, criterion, task = sample_task_from_pool(
-            not_exhausted_dataloaders,
-            batches_left,
-            not_exhausted_criterions
+    if data_combine == 'continuos':
+        return train_continuos(
+            model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch, 
+            prev_data_iters=prev_state
         )
-        optimizer.zero_grad()
-        if task == 'sentiment':
-            ids, attention_masks, targets = \
-                batch['token_ids'], batch['attention_masks'], batch['targets']
+         
 
-            ids = ids.to(device)
-            attention_masks = attention_masks.to(device)
-            targets = targets.to(device)
-
-            predictions = model(task, ids, attention_masks)
-
-        elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
-            ids_1, attention_masks_1, ids_2, attention_masks_2, targets = \
-                (batch['token_ids_1'], batch['attention_masks_1'],
-                 batch['token_ids_2'], batch['attention_masks_2'],
-                 batch['targets'])
-
-            ids_1 = ids_1.to(device)
-            ids_2 = ids_2.to(device)
-            attention_masks_1 = attention_masks_1.to(device)
-            attention_masks_2 = attention_masks_2.to(device)
-            targets = targets.to(device)
-
-            predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-
-        else:
-            raise NotImplementedError
-
-        loss = criterion(predictions, targets).sum()
-        loss.backward()
-        optimizer.step()
-
-        if verbose:
-            pbar.update(len(batch['targets']))
-
-    if verbose:
-        pbar.close()
-
+    message = f'{data_combine} is not known data combine strategy.'
+    logger.error(message)
+    raise NotImplementedError(message)
+    
 
 
 
@@ -120,7 +66,10 @@ def train_validation_loop_multitask(
         verbose: bool = True,
         save_best_path: str = None,
         overall_config: dict = None,
-        metric_comparator: Callable[[dict, dict], bool] = sum_comparator
+        metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
+        data_combine: str = 'sequential',
+        skip_train_eval: int = 1,
+        best_metric: dict = {}
 ) -> dict:
     """
     Run the train loop with selecting parameters while validating the model
@@ -185,33 +134,35 @@ def train_validation_loop_multitask(
 
     # Initialization
     result = None
-
-    best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1}
+    best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1, **best_metric}
     current_epoch = 0
 
     logger.info('Starting training and validating the model.')
+    epoch_train_state = None
     for _ in pbar:
         # Train
-        train_one_epoch_multitask(
+        epoch_train_state = train_one_epoch_multitask(
             model,
             train_loader,
             optimizer,
             criterion,
             device,
             verbose=True,
-            current_epoch=current_epoch
+            current_epoch=current_epoch,
+            data_combine=data_combine,
+            prev_state=epoch_train_state
         )
 
         logger.info(f'Finished training epoch {current_epoch}')
-
-        logger.info(f'Training results for epoch {current_epoch}')
-        epoch_train_scores = evaluate_model_multitask(
-            model,
-            train_loader,
-            device,
-            metric,
-            criterion
-        )
+        if current_epoch % skip_train_eval == 0:
+            logger.info(f'Training results for epoch {current_epoch}')
+            epoch_train_scores = evaluate_model_multitask(
+                model,
+                train_loader,
+                device,
+                metric,
+                criterion
+            )
 
         # Validation
         logger.info(f'Validation results for epoch {current_epoch}')
@@ -236,13 +187,15 @@ def train_validation_loop_multitask(
             except Exception as e:
                 logger.error(f'Error loading to watcher at epoch {current_epoch}')
                 raise e
-
-        if save_best_path is not None and metric_comparator(epoch_val_scores['metric'], best_metric):
-            best_metric = epoch_val_scores['metric']
+            
+        # in case of partial evaluation i.e only on sst dataset
+        current_metric = {**best_metric, **epoch_val_scores}
+        if save_best_path is not None and metric_comparator(current_metric, best_metric):
+            best_metric = current_metric
             save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1
 
     logger.info(f'Finished training and validation the model.')
 
-    return result
+    return result, best_metric

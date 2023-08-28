@@ -46,12 +46,11 @@ def evaluate_model_multitask(
     metric = {}
 
     for i, dataloader in enumerate(eval_dataloaders):
-        running_loss = 0
-        running_metric = torch.tensor(0, dtype=torch.float32).to(device)
         task = dataloader.dataset.task
+        preds_all = []
+        targets_all = []
 
-        for batch in tqdm(dataloader, leave=False,
-                          desc=f'Evaluating on {task}'):
+        for batch in tqdm(dataloader, leave=False, desc=f'Evaluating on {task}'):
             if task == 'sentiment':
                 ids, attention_masks, targets = \
                     batch['token_ids'], batch['attention_masks'], batch['targets']
@@ -81,22 +80,19 @@ def evaluate_model_multitask(
                     predictions = torch.clip(predictions, 0, 5)
             else:
                 raise NotImplementedError
-
-            if criterions is not None:
-                loss = criterions[i](predictions, targets)
-                running_loss += loss.item() * len(predictions)
-
-            running_metric += metrics[i](predictions, targets) * len(predictions)
+            preds_all.append(predictions) 
+            targets_all.append(targets)
+        preds_all = torch.cat(preds_all)
+        targets_all = torch.cat(targets_all)
 
         if criterions:
-            losses[task] = running_loss / len(dataloader.dataset)
+            losses[task] = criterions[i](preds_all, targets_all)
 
-        metric[task] = running_metric / len(dataloader.dataset)
+        metric[task] = metrics[i](preds_all, targets_all)
     
-    result = {'metric': metric, 'loss': losses}
-    logger.info(evaluation_message(result))
+    logger.info(evaluation_message({'metric': metric, 'loss': losses}))
 
-    return result
+    return metric
 
 
 def evaluation_message(result: dict)->str:
