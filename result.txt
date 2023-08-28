@@ -1,2 +1,2 @@
-metric: sentiment: 0.387, paraphrase_classifier: 0.699, paraphrase_regressor: 0.261 loss: sentiment: 1.382, paraphrase_classifier: 0.580, paraphrase_regressor: 2.129  
+metric: sentiment: 0.498, paraphrase_classifier: 0.708, paraphrase_regressor: 0.376 loss: sentiment: 1.179, paraphrase_classifier: 0.578, paraphrase_regressor: 1.945      
 
