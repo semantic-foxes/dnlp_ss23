@@ -68,7 +68,8 @@ def train_validation_loop_multitask(
         overall_config: dict = None,
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
         data_combine: str = 'sequential',
-        skip_train_eval: int = 1
+        skip_train_eval: int = 1,
+        best_metric: dict = {}
 ) -> dict:
     """
     Run the train loop with selecting parameters while validating the model
@@ -133,8 +134,7 @@ def train_validation_loop_multitask(
 
     # Initialization
     result = None
-
-    best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1}
+    best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1, **best_metric}
     current_epoch = 0
 
     logger.info('Starting training and validating the model.')
@@ -187,13 +187,15 @@ def train_validation_loop_multitask(
             except Exception as e:
                 logger.error(f'Error loading to watcher at epoch {current_epoch}')
                 raise e
-
-        if save_best_path is not None and metric_comparator(epoch_val_scores['metric'], best_metric):
-            best_metric = epoch_val_scores['metric']
+            
+        # in case of partial evaluation i.e only on sst dataset
+        current_metric = {**best_metric, **epoch_val_scores}
+        if save_best_path is not None and metric_comparator(current_metric, best_metric):
+            best_metric = current_metric
             save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1
 
     logger.info(f'Finished training and validation the model.')
 
-    return result
+    return result, best_metric

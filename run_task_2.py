@@ -127,14 +127,16 @@ if __name__ == "__main__":
 
     model = model.to(device)
 
+    metrics = [accuracy, accuracy, pearson_correlation]
+    criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
+
+    best_metric = {}
     if args.restore:
         load_state(model, device, config_bert['weigths_path'])
+        best_metric = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
-
-    metrics = [accuracy, accuracy, pearson_correlation]
-    criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
@@ -152,9 +154,10 @@ if __name__ == "__main__":
         data_combine=config_train['data_combine'],
         verbose=False,
         skip_train_eval=config_train['skip_train_eval'],
+        best_metric=best_metric,
     )
 
-    load_state(model, device,  config_train['checkpoint_path'])
+    load_state(model, device, config_train['checkpoint_path'])
 
     logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')

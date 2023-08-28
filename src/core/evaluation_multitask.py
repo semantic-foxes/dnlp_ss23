@@ -90,10 +90,9 @@ def evaluate_model_multitask(
 
         metric[task] = metrics[i](preds_all, targets_all)
     
-    result = {'metric': metric, 'loss': losses}
-    logger.info(evaluation_message(result))
+    logger.info(evaluation_message({'metric': metric, 'loss': losses}))
 
-    return result
+    return metric
 
 
 def evaluation_message(result: dict)->str:
