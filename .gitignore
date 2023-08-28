@@ -4,6 +4,7 @@ todo
 logs
 checkpoints
 test_run.py
+test.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
