@@ -158,6 +158,7 @@ if __name__ == "__main__":
         verbose=False,
         skip_train_eval=config_train['skip_train_eval'],
         best_metric=best_metric,
+        results_path=config_train['results_path'],
     )
 
     save_results(results, config_train['results_path'])

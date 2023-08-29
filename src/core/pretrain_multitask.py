@@ -24,7 +24,8 @@ def pretrain_validation_loop_multitask(
         data_combine: str = 'sequential',
         skip_train_eval: int = 1,
         best_metric: dict = {},
-        result: List = []
+        result: List = [],
+        results_path: str = 'results/results.csv',
 ):
     """
     Run the train loop with selecting parameters while validating the model
@@ -55,6 +56,7 @@ def pretrain_validation_loop_multitask(
             verbose=verbose,
             skip_train_eval=skip_train_eval,
             best_metric=best_metric,
-            result=result
+            result=result,
+            results_path=results_path,
         )
     return result, best_metric

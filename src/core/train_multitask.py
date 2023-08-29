@@ -14,6 +14,7 @@ from src.core.train_epoch.train_epoch_sequential import train_sequential
 
 
 from src.utils import logger, save_state
+from src.utils.model_utils import save_results
 
 def train_one_epoch_multitask(
         model: nn.Module,
@@ -71,6 +72,7 @@ def train_validation_loop_multitask(
         skip_train_eval: int = 1,
         best_metric: dict = {},
         result: List = [],
+        results_path: str = 'results/results.csv',
 ):
     """
     Run the train loop with selecting parameters while validating the model
@@ -203,5 +205,6 @@ def train_validation_loop_multitask(
         current_epoch += 1
 
     logger.info(f'Finished training and validation the model.')
+    save_results(result, results_path)
 
     return result, best_metric

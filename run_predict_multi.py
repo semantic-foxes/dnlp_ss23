@@ -13,7 +13,7 @@ from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions
 
-
+# TODO: check
 if __name__ == "__main__":
     with open('config.yaml', 'r') as f:
         CONFIG = yaml.load(f, Loader=yaml.FullLoader)
