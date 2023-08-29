@@ -86,13 +86,14 @@ def evaluate_model_multitask(
         targets_all = torch.cat(targets_all)
 
         if criterions:
-            losses[task] = criterions[i](preds_all, targets_all)
+            losses[task] = criterions[i](preds_all, targets_all).item()
 
-        metric[task] = metrics[i](preds_all, targets_all)
+        metric[task] = metrics[i](preds_all, targets_all).item()
     
-    logger.info(evaluation_message({'metric': metric, 'loss': losses}))
+    results = {'metric': metric, 'loss': losses}
+    logger.info(evaluation_message(results))
 
-    return metric
+    return results
 
 
 def evaluation_message(result: dict)->str:

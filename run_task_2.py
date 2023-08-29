@@ -13,7 +13,7 @@ from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions_multitask
 from src.metrics import accuracy, pearson_correlation
-from src.utils.model_utils import load_state
+from src.utils.model_utils import load_state, save_results
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -134,7 +134,8 @@ if __name__ == "__main__":
     best_metric = {}
     if args.restore:
         load_state(model, device, config_bert['weigths_path'])
-        best_metric = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
+        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
+        best_metric = best_scores['metric']
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
     train_fn = pretrain_validation_loop_multitask if config_bert["mode"]=='pretrain' else train_validation_loop_multitask
-    train_fn(
+    results, _ = train_fn(
         model=model,
         optimizer=optimizer,
         criterion=criteria,
@@ -158,6 +159,8 @@ if __name__ == "__main__":
         skip_train_eval=config_train['skip_train_eval'],
         best_metric=best_metric,
     )
+
+    save_results(results, config_train['results_path'])
 
     load_state(model, device, config_train['checkpoint_path'])
 

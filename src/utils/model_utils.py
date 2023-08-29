@@ -1,5 +1,6 @@
 import os
-from typing import Union
+from typing import List, Union
+import pandas as pd
 
 import torch
 from torch import nn
@@ -97,3 +98,10 @@ def load_state(
     model.load_state_dict(saved['model'])
     model = model.to(device)
     logger.info(f"Loaded model from {filepath}")
+
+def save_results(results:List, savepath:str = 'results.csv'):
+    directory = os.path.dirname(savepath)
+    os.makedirs(directory, exist_ok=True)
+
+    logger.info(f'Saving the results to {savepath}.')
+    pd.DataFrame(results).to_csv(savepath)

@@ -23,8 +23,9 @@ def pretrain_validation_loop_multitask(
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
         data_combine: str = 'sequential',
         skip_train_eval: int = 1,
-        best_metric: dict = {}
-) -> dict:
+        best_metric: dict = {},
+        result: List = []
+):
     """
     Run the train loop with selecting parameters while validating the model
     after each epoch.
@@ -37,7 +38,7 @@ def pretrain_validation_loop_multitask(
         except:
             logger.info(f'failed to load model from {save_best_path}')
 
-        _, best_metric = train_validation_loop_multitask(
+        result, best_metric = train_validation_loop_multitask(
             model=model,
             optimizer=optimizer,
             criterion=[criterion[i]],
@@ -54,4 +55,6 @@ def pretrain_validation_loop_multitask(
             verbose=verbose,
             skip_train_eval=skip_train_eval,
             best_metric=best_metric,
+            result=result
         )
+    return result, best_metric

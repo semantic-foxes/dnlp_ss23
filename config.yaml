@@ -22,16 +22,17 @@ data:
 bert_model:
   hidden_size: 768
   dropout_prob: 0.1
-  mode: 'finetune' # 'pretrain' or 'finetune'
+  mode: 'pretrain' # 'pretrain' or 'finetune'
   local_files_only: True
-  weigths_path: 'checkpoints/finetune_classifier.pt'
+  weigths_path: 'checkpoints/pretrain_classifier.pt'
 
 train:
   n_epochs: 10
-  lr: 0.00001
-  checkpoint_path: 'checkpoints/finetune_classifier.pt'
+  lr: 0.001
+  checkpoint_path: 'checkpoints/pretrain_classifier.pt'
   data_combine: 'sequential' # 'exhaust' or 'sequential' or 'min' or 'continuos'
-  skip_train_eval: 5 # number of times to skip evaluation of train datasets
+  skip_train_eval: 1 # number of times to skip evaluation of train datasets
+  results_path: 'results/pretrain_results.csv'
 
 
 predict:

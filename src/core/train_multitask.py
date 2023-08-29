@@ -69,8 +69,9 @@ def train_validation_loop_multitask(
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
         data_combine: str = 'sequential',
         skip_train_eval: int = 1,
-        best_metric: dict = {}
-) -> dict:
+        best_metric: dict = {},
+        result: List = [],
+):
     """
     Run the train loop with selecting parameters while validating the model
     after each epoch.
@@ -105,12 +106,22 @@ def train_validation_loop_multitask(
         the datasets, etc.). Required if the save_path is provided.
     metric_comparator: Callable[[dict, dict], bool]
         Compares evaluated metrics 
+    data_combine: 
+        strategy to combine training datasets 'exhaust' or 'sequential' or 'min' or 'continuos'
+    skip_train_eval: 
+        skip every n-th evaluation of training datasets
+    best_metric: 
+        stores best metric results from previous training
+    result: List
+        stores all previous scores
 
     Returns
     -------
-    result: tuple of lists
+    result: List
         The resulting list, train loss, train metric, validation loss
         and validation metric lists.
+    best_metric:
+        best metric results after training
     """
     # Save handling
     if save_best_path and overall_config is None:
@@ -133,7 +144,6 @@ def train_validation_loop_multitask(
         raise NotImplementedError(message)
 
     # Initialization
-    result = None
     best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1, **best_metric}
     current_epoch = 0
 
@@ -174,11 +184,7 @@ def train_validation_loop_multitask(
             criterion
         )
 
-
-        if result is None:
-            result = {}
-
-        result[current_epoch] = {'train': epoch_train_scores, 'val': epoch_val_scores}
+        result.append({'train': epoch_train_scores, 'val': epoch_val_scores})
 
         # Upload to watcher
         if watcher is not None:
@@ -189,7 +195,7 @@ def train_validation_loop_multitask(
                 raise e
             
         # in case of partial evaluation i.e only on sst dataset
-        current_metric = {**best_metric, **epoch_val_scores}
+        current_metric = {**best_metric, **epoch_val_scores['metric']}
         if save_best_path is not None and metric_comparator(current_metric, best_metric):
             best_metric = current_metric
             save_state(model, optimizer, overall_config, save_best_path)
