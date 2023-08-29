@@ -21,6 +21,7 @@ def train_sequential(
 
     for dataloader, criterion in zip(train_dataloaders, criterions):
         task = dataloader.dataset.task
+        pbar = dataloader
         if verbose:
             pbar = tqdm(dataloader, leave=False,
                         desc=f'Training epoch {"" if current_epoch is None else current_epoch} on {task}')

@@ -20,6 +20,7 @@ def train_min(
     model.train()
 
     min_batches = min([len(x) for x in train_dataloaders])
+    pbar = range(min_batches)
     if verbose:
         pbar = tqdm(range(min_batches), leave=False,
                     desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks')

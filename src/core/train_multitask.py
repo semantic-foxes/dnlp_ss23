@@ -203,8 +203,9 @@ def train_validation_loop_multitask(
             save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1
+        
+        save_results(result, results_path)
 
     logger.info(f'Finished training and validation the model.')
-    save_results(result, results_path)
 
     return result, best_metric
