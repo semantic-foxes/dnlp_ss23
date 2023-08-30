@@ -1,7 +1,8 @@
 import os
-from typing import List, Union
-import pandas as pd
+from typing import Union, List
 
+import optuna
+import pandas as pd
 import torch
 from torch import nn
 from src.utils.logger_config import logger
@@ -85,7 +86,6 @@ def save_state(
                 f'and config to {filepath}.')
 
 
-
 @torch.no_grad()
 def load_state(
         model: nn.Module,
@@ -105,3 +105,57 @@ def save_results(results:List, savepath:str = 'results.csv'):
 
     logger.info(f'Saving the results to {savepath}.')
     pd.DataFrame(results).to_csv(savepath)
+
+def parse_hyperparameters_dict(
+        trial: optuna.Trial,
+        hyperparameters_dict: dict
+) -> dict:
+    result = {}
+
+    for key in hyperparameters_dict:
+        if type(hyperparameters_dict[key]) is not list:
+            if type(hyperparameters_dict[key]) is not dict:
+                new_value = hyperparameters_dict[key]
+            elif type(hyperparameters_dict[key]['low']) == str:
+                low = float(hyperparameters_dict[key]['low'])
+                high = float(hyperparameters_dict[key]['high'])
+                new_value = trial.suggest_float(key, low, high)
+
+            elif type(hyperparameters_dict[key]['low']) == float:
+                low = hyperparameters_dict[key]['low']
+                high = hyperparameters_dict[key]['high']
+                new_value = trial.suggest_float(key, low, high)
+
+            else:
+                low = hyperparameters_dict[key]['low']
+                high = hyperparameters_dict[key]['high']
+                new_value = trial.suggest_int(key, low, high)
+        else:
+            new_value = trial.suggest_categorical(key, hyperparameters_dict[key])
+
+        result[key] = new_value
+        logger.debug(f'Substituted {key} with {new_value}.')
+
+    return result
+
+
+def generate_optuna_report(
+        study: optuna.Study,
+        user_attrs: List[str]
+) -> pd.DataFrame:
+
+    result = []
+
+    for trial in study.trials:
+        row = {}
+        for key, value in trial.params.items():
+            row[key] = value
+
+        row['value'] = trial.value
+
+        for user_attr in user_attrs:
+            row[user_attr] = trial.user_attrs[user_attr]
+
+        result.append(row)
+
+    return pd.DataFrame(result)

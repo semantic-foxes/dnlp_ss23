@@ -4,7 +4,8 @@ todo
 logs
 checkpoints
 test_run.py
-test.ipynb
+src/core/core.py
+wandb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -85,6 +86,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+test.ipynb
 
 # IPython
 profile_default/

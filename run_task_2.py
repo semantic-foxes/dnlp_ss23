@@ -1,6 +1,7 @@
 import argparse
 import yaml
 import pandas as pd
+import wandb
 
 from torch.utils.data import DataLoader
 from torch import nn
@@ -39,6 +40,21 @@ if __name__ == "__main__":
 
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
+
+    if CONFIG['watcher']['type'] == 'wandb':
+        wandb.init(
+            project=CONFIG['watcher']['project_name'],
+            config=CONFIG
+        )
+        watcher = 'wandb'
+
+    elif CONFIG['watcher']['type'] == 'none':
+        watcher = None
+
+    else:
+        message = 'ERROR: Unsupported watcher selected.'
+        logger.error(message)
+        raise NotImplementedError(message)
 
     # Create datasets
     sst_train_dataset = SSTDataset(
@@ -119,11 +135,11 @@ if __name__ == "__main__":
 
     model = MultitaskBERT(
         num_labels=5,
-        option=config_bert['mode'],
+        bert_mode=config_bert['bert_mode'],
         local_files_only=config_bert['local_files_only'],
         hidden_size=config_bert['hidden_size'],
-        hidden_dropout_prob=config_bert['dropout_prob'],
-        attention_dropout_prob=config_bert['dropout_prob'],
+        hidden_dropout_prob=config_bert['hidden_dropout_prob'],
+        attention_dropout_prob=config_bert['attention_dropout_prob'],
     )
 
     model = model.to(device)
@@ -142,7 +158,8 @@ if __name__ == "__main__":
 
     logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
                 f'all the tasks.')
-    train_fn = pretrain_validation_loop_multitask if config_bert["mode"]=='pretrain' else train_validation_loop_multitask
+
+    train_fn = pretrain_validation_loop_multitask if config_bert["bert_mode"]=='pretrain' else train_validation_loop_multitask
     results, _ = train_fn(
         model=model,
         optimizer=optimizer,
@@ -155,13 +172,14 @@ if __name__ == "__main__":
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
         data_combine=config_train['data_combine'],
+        weights=[1, 10, 1],
         verbose=False,
+        watcher=CONFIG['watcher']['type'],
         skip_train_eval=config_train['skip_train_eval'],
         best_metric=best_metric,
         results_path=config_train['results_path'],
     )
 
-    save_results(results, config_train['results_path'])
 
     load_state(model, device, config_train['checkpoint_path'])
 

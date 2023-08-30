@@ -15,3 +15,4 @@ pip install explainaboard_client==0.0.7
 pip install pyyaml==6.0.1
 pip install wandb==0.15.8
 pip install pandas==2.0.3
+pip install optuna==3.3.0

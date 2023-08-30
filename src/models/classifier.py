@@ -8,7 +8,7 @@ class BertSentimentClassifier(torch.nn.Module):
     def __init__(
             self,
             num_labels,
-            option: str = 'finetune',
+            bert_mode: str = 'finetune',
             bert_model_name: str = 'bert-base-uncased',
             local_files_only: bool = False,
             vocab_size: int = 30522,
@@ -44,10 +44,10 @@ class BertSentimentClassifier(torch.nn.Module):
         )
 
         # Pretrain mode does not require updating bert parameters.
-        if option == 'pretrain':
+        if bert_mode == 'pretrain':
             for param in self.bert.parameters():
                 param.requires_grad = False
-        elif option == 'finetune':
+        elif bert_mode == 'finetune':
             for param in self.bert.parameters():
                 param.requires_grad = True
         else:

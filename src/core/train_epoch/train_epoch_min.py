@@ -24,9 +24,9 @@ def train_min(
     if verbose:
         pbar = tqdm(range(min_batches), leave=False,
                     desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks')
-        
     data_iters = [iter(x) for x in train_dataloaders]
     for _ in pbar:  
+    # TODO shuffle
         for data_iter, criterion in zip(data_iters, criterions):
             task = data_iter._dataset.task
             batch = next(data_iter)

@@ -1,6 +1,10 @@
 seed: 11711
 use_cuda: True
 
+watcher:
+  type: 'wandb' # 'none' for no watcher
+  project_name: 'semantic_foxes_bert'
+
 data:
   sst_dataset:
     train_path: 'data/ids-sst-train.csv'
@@ -21,9 +25,10 @@ data:
 
 bert_model:
   hidden_size: 768
-  dropout_prob: 0.1
-  mode: 'finetune' # 'pretrain' or 'finetune'
-  local_files_only: True
+  hidden_dropout_prob: 0.1,
+  attention_dropout_prob: 0.1,
+  bert_mode: 'finetune' # 'pretrain' or 'finetune'
+  local_files_only: False
   weigths_path: 'checkpoints/finetune_classifier.pt'
 
 train:

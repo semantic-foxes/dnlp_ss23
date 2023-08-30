@@ -11,6 +11,7 @@ explainaboard_client == 0.0.7
 pyyaml == 6.0.1
 wandb == 0.15.8
 pandas == 2.0.3
+optuna == 3.3.0
 
 torch == 2.0.0+cu117
 torchvision == 0.15.1+cu117

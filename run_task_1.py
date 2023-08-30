@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # Create a model
     model = BertSentimentClassifier(
         num_labels=5,
-        option=config_bert['mode'],
+        bert_mode=config_bert['bert_mode'],
         local_files_only=config_bert['local_files_only'],
         hidden_size=config_bert['hidden_size'],
         hidden_dropout_prob=config_bert['dropout_prob'],

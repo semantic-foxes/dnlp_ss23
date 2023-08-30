@@ -29,6 +29,7 @@ def train_continuos(
     data_iters = [iter(x) for x in train_dataloaders] if prev_data_iters is None else prev_data_iters
 
     for _ in pbar:  
+        # TODO shuffle
         for i, (data_iter, criterion) in enumerate(zip(data_iters, criterions)):
             task = data_iter._dataset.task
             try:

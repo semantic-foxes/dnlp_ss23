@@ -25,11 +25,12 @@ def train_one_epoch_multitask(
         data_combine: str = 'sequential',
         verbose: bool = True,
         current_epoch: int = None,
-        prev_state = None
+        prev_state = None,
+        weights: List[int] = [1, 1, 1],
 ):
     model.train()
     if data_combine == 'exhaust':
-        train_exhaust(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
+        train_exhaust(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch, weights)
         return 
     
     if data_combine == 'sequential':
@@ -63,6 +64,7 @@ def train_validation_loop_multitask(
         val_loader: List[torch.utils.data.DataLoader],
         n_epochs: int,
         device: torch.device,
+        weights: List[int] = [1, 1, 1],
         watcher: Union[str, None] = None,
         verbose: bool = True,
         save_best_path: str = None,
@@ -75,7 +77,7 @@ def train_validation_loop_multitask(
         results_path: str = 'results/results.csv',
 ):
     """
-    Run the train loop with selecting parameters while validating the model
+    Run the train loop with selected parameters while validating the model
     after each epoch.
 
     Parameters
@@ -161,6 +163,7 @@ def train_validation_loop_multitask(
             device,
             verbose=True,
             current_epoch=current_epoch,
+            weights=weights,
             data_combine=data_combine,
             prev_state=epoch_train_state
         )
@@ -183,7 +186,7 @@ def train_validation_loop_multitask(
             val_loader,
             device,
             metric,
-            criterion
+            criterion,
         )
 
         result.append({'train': epoch_train_scores, 'val': epoch_val_scores})

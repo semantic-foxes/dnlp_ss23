@@ -6,7 +6,7 @@ class MultitaskBERT(nn.Module):
     def __init__(
             self,
             num_labels,
-            option: str = 'finetune',
+            bert_mode: str = 'finetune',
             bert_model_name: str = 'bert-base-uncased',
             local_files_only: bool = False,
             vocab_size: int = 30522,
@@ -43,9 +43,9 @@ class MultitaskBERT(nn.Module):
         )
 
         # Pretrain mode does not require updating bert parameters.
-        if option == 'pretrain':
+        if bert_mode == 'pretrain':
             self.requires_grad_(False)
-        elif option == 'finetune':
+        elif bert_mode == 'finetune':
             self.requires_grad_(True)
         else:
             raise AttributeError('Incorrect mode for BERT model. Should be'
