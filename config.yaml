@@ -2,7 +2,7 @@ seed: 11711
 use_cuda: True
 
 watcher:
-  type: 'wandb'
+  type: 'wandb' # 'none' for no watcher
   project_name: 'semantic_foxes_bert'
 
 data:
