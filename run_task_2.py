@@ -44,7 +44,8 @@ if __name__ == "__main__":
     if CONFIG['watcher']['type'] == 'wandb':
         wandb.init(
             project=CONFIG['watcher']['project_name'],
-            config=CONFIG
+            config=CONFIG,
+            mode=CONFIG['watcher']['mode'],
         )
         watcher = 'wandb'
 
@@ -165,7 +166,7 @@ if __name__ == "__main__":
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
 
-    logger.info(f'Starting training the {config_bert["mode"]} BERT model on '
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
 
     train_fn = pretrain_validation_loop_multitask if config_bert["bert_mode"]=='pretrain' else train_validation_loop_multitask
@@ -192,7 +193,7 @@ if __name__ == "__main__":
 
     load_state(model, device, config_train['checkpoint_path'])
 
-    logger.info(f'Starting testing the {config_bert["mode"]} BERT model on '
+    logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
     
     evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)

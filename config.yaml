@@ -4,6 +4,7 @@ use_cuda: True
 watcher:
   type: 'wandb' # 'none' for no watcher
   project_name: 'semantic_foxes_bert'
+  mode: 'offline' # "online", "offline" or "disabled"
 
 data:
   sst_dataset:
@@ -25,15 +26,15 @@ data:
 
 bert_model:
   hidden_size: 768
-  hidden_dropout_prob: 0.1,
-  attention_dropout_prob: 0.1,
-  bert_mode: 'finetune' # 'pretrain' or 'finetune'
+  hidden_dropout_prob: 0.1
+  attention_dropout_prob: 0.1
+  bert_mode: 'pretrain' # 'pretrain' or 'finetune'
   local_files_only: False
   weigths_path: 'checkpoints/finetune_classifier.pt'
 
 train:
   n_epochs: 10
-  lr: 0.00001
+  lr: 0.001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   data_combine: 'continuos' # 'exhaust' or 'sequential' or 'min' or 'continuos'
   skip_train_eval: 2 # number of times to skip evaluation of train datasets

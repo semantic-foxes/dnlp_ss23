@@ -188,13 +188,14 @@ def train_validation_loop_multitask(
             metric,
             criterion,
         )
-
-        result.append({'train': epoch_train_scores, 'val': epoch_val_scores})
+        
+        scores = {'train': epoch_train_scores, 'val': epoch_val_scores}
+        result.append(scores)
 
         # Upload to watcher
         if watcher is not None:
             try:
-                watcher_command({**epoch_train_scores, **epoch_val_scores})
+                watcher_command(scores)
             except Exception as e:
                 logger.error(f'Error loading to watcher at epoch {current_epoch}')
                 raise e
