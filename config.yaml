@@ -30,7 +30,7 @@ bert_model:
   attention_dropout_prob: 0.1
   bert_mode: 'pretrain' # 'pretrain' or 'finetune'
   local_files_only: False
-  weigths_path: 'checkpoints/finetune_classifier.pt'
+  weights_path: 'checkpoints/finetune_classifier.pt'
 
 train:
   n_epochs: 10

@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     best_metric = {}
     if args.restore:
-        load_state(model, device, config_bert['weigths_path'])
+        load_state(model, device, config_bert['weights_path'])
         best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
         best_metric = best_scores['metric']
 
@@ -169,8 +169,12 @@ if __name__ == "__main__":
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
 
-    train_fn = pretrain_validation_loop_multitask if config_bert["bert_mode"]=='pretrain' else train_validation_loop_multitask
-    results, _ = train_fn(
+    if config_bert['bert_mode'] == 'pretrain':
+        train_function = pretrain_validation_loop_multitask
+    else:
+        train_function = train_validation_loop_multitask
+
+    results, _ = train_function(
         model=model,
         optimizer=optimizer,
         criterion=criteria,
