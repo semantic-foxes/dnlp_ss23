@@ -56,6 +56,12 @@ if __name__ == "__main__":
         logger.error(message)
         raise NotImplementedError(message)
 
+    exp_factor = config_dataloader.get('exp_factor')
+    if exp_factor is not None:
+        inflation_params = (config_dataloader['batch_size'], exp_factor)
+    else:
+        inflation_params = None
+
     # Create datasets
     sst_train_dataset = SSTDataset(
         config_sst['train_path'],
@@ -72,7 +78,8 @@ if __name__ == "__main__":
 
     quora_train_dataset = SentenceSimilarityDataset(
         config_quora['train_path'],
-        return_targets=True
+        return_targets=True,
+        inflation_params=inflation_params
     )
     quora_val_dataset = SentenceSimilarityDataset(
         config_quora['val_path'],
@@ -87,7 +94,8 @@ if __name__ == "__main__":
     sts_train_dataset = SentenceSimilarityDataset(
         config_sts['train_path'],
         binary_task=False,
-        return_targets=True
+        return_targets=True,
+        inflation_params=inflation_params
     )
     sts_val_dataset = SentenceSimilarityDataset(
         config_sts['val_path'],
@@ -105,6 +113,7 @@ if __name__ == "__main__":
         DataLoader(
             x,
             shuffle=True,
+            drop_last=True,
             collate_fn=x.collate_fn,
             batch_size=config_dataloader['batch_size'],
             num_workers=config_dataloader['num_workers'],
