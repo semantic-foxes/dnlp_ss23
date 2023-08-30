@@ -76,8 +76,8 @@ def main():
             x,
             shuffle=True,
             collate_fn=x.collate_fn,
-            batch_size=COMMON_CONFIG['data']['batch_size'],
-            num_workers=COMMON_CONFIG['data']['num_workers'],
+            batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
+            num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
         )
         for x in [sst_train_dataset, quora_train_dataset, sts_train_dataset]
     ]
@@ -86,14 +86,14 @@ def main():
             x,
             shuffle=False,
             collate_fn=x.collate_fn,
-            batch_size=COMMON_CONFIG['data']['batch_size'],
-            num_workers=COMMON_CONFIG['data']['num_workers'],
+            batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
+            num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
         )
         for x in [sst_val_dataset, quora_val_dataset, sts_val_dataset]
     ]
 
     # Hyperparameter config handling
-    hyperparameter_config_path = 'configs/hyperparameter_config.yaml'
+    hyperparameter_config_path = 'hyperparameter_config.yaml'
     with open(hyperparameter_config_path, 'r') as f:
         HYPERPARAMETER_CONFIG = yaml.load(f, Loader=yaml.FullLoader)
     try:
@@ -116,6 +116,7 @@ def main():
             num_labels=5,
             **new_model_config
         )
+        model = model.to(device)
 
         # Changing all the train hyperparameters
         new_train_config = COMMON_CONFIG['train']
@@ -123,7 +124,8 @@ def main():
         for key, value in train_hyperparameters.items():
             new_train_config[key] = value
 
-        n_epochs = new_train_config.pop('lr')
+        n_epochs = new_train_config.pop('n_epochs')
+        _ = new_train_config.pop('checkpoint_path')
         optimizer = AdamW(model.parameters(), **new_train_config)
 
         train_loop_multitask(
@@ -167,8 +169,8 @@ def main():
         study,
         [
             'sentiment val metric',
-            'paraphrase_classifier',
-            'paraphrase_regressor'
+            'paraphrase_classifier val metric',
+            'paraphrase_regressor val metric'
         ]
     )
 

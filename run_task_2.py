@@ -1,5 +1,5 @@
 import yaml
-import pandas as pd
+import wandb
 
 from torch.utils.data import DataLoader
 from torch import nn
@@ -27,6 +27,21 @@ if __name__ == "__main__":
 
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
+
+    if CONFIG['watcher']['type'] == 'wandb':
+        wandb.init(
+            project=CONFIG['watcher']['project_name'],
+            config=CONFIG
+        )
+        watcher = 'wandb'
+
+    elif CONFIG['watcher']['type'] == 'none':
+        watcher = None
+
+    else:
+        message = 'ERROR: Unsupported watcher selected.'
+        logger.error(message)
+        raise NotImplementedError(message)
 
     # Create datasets
     sst_train_dataset = SSTDataset(
@@ -105,11 +120,11 @@ if __name__ == "__main__":
 
     model = MultitaskBERT(
         num_labels=5,
-        option=config_bert['mode'],
+        bert_mode=config_bert['bert_mode'],
         local_files_only=config_bert['local_files_only'],
         hidden_size=config_bert['hidden_size'],
-        hidden_dropout_prob=config_bert['dropout_prob'],
-        attention_dropout_prob=config_bert['dropout_prob'],
+        hidden_dropout_prob=config_bert['hidden_dropout_prob'],
+        attention_dropout_prob=config_bert['attention_dropout_prob'],
     )
 
     model = model.to(device)
@@ -133,6 +148,7 @@ if __name__ == "__main__":
         overall_config=CONFIG,
         weights=[1, 10, 1],
         verbose=False,
+        watcher=CONFIG['watcher']['type']
     )
 
     for test_loader, save_path in zip(test_dataloaders, config_prediction.values()):

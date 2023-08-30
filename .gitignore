@@ -5,6 +5,7 @@ logs
 checkpoints
 test_run.py
 src/core/core.py
+wandb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
