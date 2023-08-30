@@ -94,15 +94,15 @@ def train_one_epoch_multitask(
             pbar = tqdm(total=total_len, leave=False,
                         desc=f'Training model on all tasks')
 
-    not_exhausted_dataloaders = [iter(x) for x in train_dataloaders]
+    iterable_dataloaders = [iter(x) for x in train_dataloaders]
     batches_left = [len(x) for x in train_dataloaders]
     not_exhausted_criterions = [x for x in criterions]
 
-    while len(not_exhausted_dataloaders) > 0:
+    while sum(batches_left) > 0:
         optimizer.zero_grad()
 
         batch, criterion, task, number_chosen = sample_task_from_pool(
-            not_exhausted_dataloaders,
+            iterable_dataloaders,
             batches_left,
             not_exhausted_criterions
         )
@@ -121,7 +121,7 @@ def train_one_epoch_multitask(
                 break
 
             batch, criterion, task, _ = sample_task_from_pool(
-                not_exhausted_dataloaders,
+                iterable_dataloaders,
                 batches_left,
                 not_exhausted_criterions,
                 number_chosen
@@ -138,7 +138,8 @@ def train_one_epoch_multitask(
 
         if weights[number_chosen] - 1 > 0:
             for param in model.parameters():
-                param.grad /= weights[number_chosen]
+                if param.grad is not None:
+                    param.grad /= weights[number_chosen]
 
         optimizer.step()
 

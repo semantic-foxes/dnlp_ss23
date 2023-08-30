@@ -26,7 +26,7 @@ bert_model:
   local_files_only: False
 
 train:
-  n_epochs: 10
+  n_epochs: 1
   lr: 0.00001
   checkpoint_path: 'checkpoints/sst_classifier.pt'
 

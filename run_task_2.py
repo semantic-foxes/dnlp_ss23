@@ -123,7 +123,7 @@ if __name__ == "__main__":
     train_validation_loop_multitask(
         model=model,
         optimizer=optimizer,
-        criterion=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
+        criterion=[nn. CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
         metric=[accuracy, accuracy, pearson_correlation],
         train_loader=train_dataloaders,
         val_loader=val_dataloaders,
