@@ -157,8 +157,10 @@ if __name__ == "__main__":
         hidden_dropout_prob=config_bert['hidden_dropout_prob'],
         attention_dropout_prob=config_bert['attention_dropout_prob'],
     )
-
+    
+    logger.info('Model to device')
     model = model.to(device)
+    logger.info('Model to device: Done')
 
     metrics = [accuracy, accuracy, pearson_correlation]
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]

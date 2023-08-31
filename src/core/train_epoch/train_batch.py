@@ -45,8 +45,9 @@ def train_one_batch_multitask(
         make_optimizer_step: bool = True,
 ):
     predictions = _batch_forward(batch, model, task, device)
-  
-    loss = criterion(predictions, batch['targets']).sum()
+    targets = batch['targets'].to(device)
+    
+    loss = criterion(predictions, targets).sum()
     loss.backward()
 
     if make_optimizer_step:
