@@ -16,6 +16,7 @@ def train_epoch_continuous(
         optimizer: torch.optim.Optimizer,
         criterions: List[torch.nn.Module],
         device: torch.device,
+        train_mode: str,
         number_of_batches: int = None,
         verbose: bool = True,
         current_epoch: int = None,
@@ -69,6 +70,6 @@ def train_epoch_continuous(
             data_iters[number_chosen] = iter(train_dataloaders[number_chosen])
             logger.info(f'Resetting {task} dataloader.')
 
-        train_one_batch_multitask(model, batch, optimizer, criterion, device, task)
+        train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode)
 
     return data_iters

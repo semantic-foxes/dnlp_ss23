@@ -21,7 +21,7 @@ data:
     test_path: 'data/sts-test-student.csv'
 
   dataloader:
-    batch_size: 64
+    batch_size: 16
     num_workers: 1
 
 bert_model:
@@ -39,7 +39,7 @@ train:
   dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet_unsupervised'
   skip_train_eval: 2 # number of times to skip evaluation of train datasets
-  max_train_size: null # null - reads the whole dataset, ~6050 - min 
+  max_train_size: 64 # null - reads the whole dataset, ~6050 - min
 
 
 predict:

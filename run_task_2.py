@@ -222,6 +222,7 @@ if __name__ == "__main__":
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
         dataloader_mode=config_train['dataloader_mode'],
+        train_mode=train_mode,
         weights=[1, 10, 1],
         verbose=False,
         watcher=CONFIG['watcher']['type'],

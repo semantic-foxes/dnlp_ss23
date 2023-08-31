@@ -15,6 +15,7 @@ def train_epoch_exhaust(
         optimizer: torch.optim.Optimizer,
         criterions: List[torch.nn.Module],
         device: torch.device,
+        train_mode: str,
         verbose: bool = True,
         current_epoch: int = None,
         weights: List[int] = [1, 1, 1]
@@ -39,11 +40,7 @@ def train_epoch_exhaust(
             not_exhausted_criterions
         )
 
-        predictions = _batch_forward(batch, model, task, device)
-
-        targets = batch['targets'].to(device)
-        loss = criterion(predictions, targets).sum()
-        loss.backward()
+        predictions = _batch_forward(batch, model, task, device, train_mode)
 
         if verbose:
             pbar.update(len(batch['targets']))
@@ -59,11 +56,7 @@ def train_epoch_exhaust(
                 number_chosen
             )
 
-            predictions = _batch_forward(batch, model, task, device)
-
-            targets = batch['targets'].to(device)
-            loss = criterion(predictions, targets).sum()
-            loss.backward()
+            predictions = _batch_forward(batch, model, task, device, train_mode)
 
             if verbose:
                 pbar.update(len(batch['targets']))

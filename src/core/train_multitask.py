@@ -19,6 +19,7 @@ def train_one_epoch_multitask(
         criterions: List[torch.nn.Module],
         device: torch.device,
         dataloader_mode: str = 'sequential',
+        train_mode: str = 'standard',
         verbose: bool = True,
         current_epoch: int = None,
         prev_state: List[Iterable] = None,
@@ -31,6 +32,7 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
             verbose=verbose,
             current_epoch=current_epoch,
             weights=weights
@@ -43,6 +45,7 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
             verbose=verbose,
             current_epoch=current_epoch,
         )
@@ -54,6 +57,7 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
             verbose=verbose,
             current_epoch=current_epoch,
             cut_to_min_size=True
@@ -66,6 +70,7 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
             verbose=verbose,
             current_epoch=current_epoch,
             prev_data_iters=prev_state
@@ -93,6 +98,7 @@ def train_validation_loop_multitask(
         overall_config: dict = None,
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
         dataloader_mode: str = 'sequential',
+        train_mode: str = 'standard',
         skip_train_eval: int = 1,
         best_metric: dict = {},
         prior_scores: List = [],
@@ -133,6 +139,8 @@ def train_validation_loop_multitask(
         Compares evaluated metrics 
     dataloader_mode: 
         strategy to combine training datasets 'exhaust' or 'sequential' or 'min' or 'continuous'
+    train_mode:
+        'standard' or 'contrastive' or 'triplet_unsupervised'
     skip_train_eval: 
         skip every n-th evaluation of training datasets
     best_metric: 
@@ -191,6 +199,7 @@ def train_validation_loop_multitask(
             current_epoch=current_epoch,
             weights=weights,
             dataloader_mode=dataloader_mode,
+            train_mode=train_mode,
             prev_state=epoch_train_state
         )
         logger.info(f'Finished training epoch {current_epoch}')
