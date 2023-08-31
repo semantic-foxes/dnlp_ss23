@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from src.core.train_epoch.train_batch import _batch_forward
-from src.core import sample_task_from_pool
+from src.core.train_epoch.sample_task import sample_task_from_pool
 
 
 def train_epoch_exhaust(

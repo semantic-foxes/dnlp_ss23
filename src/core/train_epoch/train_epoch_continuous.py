@@ -5,8 +5,8 @@ from tqdm import tqdm
 import torch
 from torch import nn
 
+from src.core.train_epoch.sample_task import sample_task_from_pool
 from src.core.train_epoch.train_batch import train_one_batch_multitask
-from src.core import sample_task_from_pool
 from src.utils import logger
 
 

@@ -95,7 +95,7 @@ def train_validation_loop_multitask(
         dataloader_mode: str = 'sequential',
         skip_train_eval: int = 1,
         best_metric: dict = {},
-        prior_scores: List = None,
+        prior_scores: List = [],
 ):
     """
     Run the train loop with selected parameters while validating the model
@@ -176,10 +176,6 @@ def train_validation_loop_multitask(
         **best_metric
     }
     current_epoch = 0
-    if prior_scores is None:
-        resulting_scores = []
-    else:
-        resulting_scores = prior_scores.copy()
 
     logger.info('Starting training and validating the model.')
     epoch_train_state = None
@@ -223,7 +219,7 @@ def train_validation_loop_multitask(
         )
         current_epoch_scores['val'] = epoch_val_scores
 
-        prior_scores.append(current_epoch_scores)
+        resulting_scores = [*prior_scores, current_epoch_scores]
 
         # Upload to watcher
         if watcher is not None:

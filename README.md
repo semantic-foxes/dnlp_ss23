@@ -56,7 +56,7 @@ We used `bert-base-uncased` BERT.
 ### Data combination
 
 Since 3 datasets have different amount of data, we can combine them differently for training purposes.
-There are several options for `data_combine`
+There are several options for `dataloader_mode`
 
 - `min` - crops all datasets by minimal length
 - `sequential` - traverse the whole dataset one after another (good for pretrain)

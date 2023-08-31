@@ -45,7 +45,7 @@ def train_epoch_sequential(
     if verbose:
         if cut_to_min_size:
             pbar = tqdm(
-                range(cut_to_min_size * len(train_dataloaders)),
+                range(cutoff * len(train_dataloaders)),
                 leave=False,
                 desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks'
             )
