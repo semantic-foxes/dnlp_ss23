@@ -66,7 +66,8 @@ if __name__ == "__main__":
     # Create datasets
     sst_train_dataset = SSTDataset(
         config_sst['train_path'],
-        return_targets=True
+        return_targets=True,
+        nrows=config_train.get('max_train_size'),
     )
     sst_val_dataset = SSTDataset(
         config_sst['val_path'],
@@ -80,7 +81,8 @@ if __name__ == "__main__":
     quora_train_dataset = SentenceSimilarityDataset(
         config_quora['train_path'],
         return_targets=True,
-        inflation_params=inflation_params
+        inflation_params=inflation_params,
+        nrows=config_train.get('max_train_size'),
     )
     quora_val_dataset = SentenceSimilarityDataset(
         config_quora['val_path'],
@@ -96,7 +98,8 @@ if __name__ == "__main__":
         config_sts['train_path'],
         binary_task=False,
         return_targets=True,
-        inflation_params=inflation_params
+        inflation_params=inflation_params,
+        nrows=config_train.get('max_train_size'),
     )
     sts_val_dataset = SentenceSimilarityDataset(
         config_sts['val_path'],

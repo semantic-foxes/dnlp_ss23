@@ -45,7 +45,7 @@ def train_epoch_continuous(
     model.train()
 
     if number_of_batches is None:
-        number_of_batches = min([len(x) for x in train_dataloaders]) * 3
+        number_of_batches = min([len(x) for x in train_dataloaders]) * len(train_dataloaders)
 
     if verbose:
         pbar = tqdm(range(number_of_batches), leave=False,
