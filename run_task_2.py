@@ -174,7 +174,7 @@ if __name__ == "__main__":
     else:
         train_function = train_validation_loop_multitask
 
-    results, _ = train_function(
+    train_function(
         model=model,
         optimizer=optimizer,
         criterion=criteria,
@@ -185,15 +185,13 @@ if __name__ == "__main__":
         device=device,
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
-        data_combine=config_train['data_combine'],
+        dataloader_mode=config_train['data_combine'],
         weights=[1, 10, 1],
         verbose=False,
         watcher=CONFIG['watcher']['type'],
         skip_train_eval=config_train['skip_train_eval'],
-        best_metric=best_metric,
-        results_path=config_train['results_path'],
+        best_metric=best_metric
     )
-
 
     load_state(model, device, config_train['checkpoint_path'])
 

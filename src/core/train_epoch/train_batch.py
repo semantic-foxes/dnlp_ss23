@@ -2,7 +2,6 @@ import torch
 from torch import nn
 
 
-
 def _batch_forward(
         batch,
         model,

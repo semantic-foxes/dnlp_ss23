@@ -1,5 +1,4 @@
-import random
-from typing import Callable, Union, List
+from typing import Callable, Union, List, Iterable
 
 from tqdm import tqdm
 import wandb
@@ -7,14 +6,11 @@ import wandb
 import torch
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask, sum_comparator
-from src.core.train_epoch.train_epoch_continuos import train_continuos
-from src.core.train_epoch.train_epoch_exhaust import train_exhaust
-from src.core.train_epoch.train_epoch_min import train_min
-from src.core.train_epoch.train_epoch_sequential import train_sequential
-
-
+from src.core.train_epoch.train_epoch_continuous import train_epoch_continuous
+from src.core.train_epoch.train_epoch_exhaust import train_epoch_exhaust
+from src.core.train_epoch.train_epoch_sequential import train_epoch_sequential
 from src.utils import logger, save_state
-from src.utils.model_utils import save_results
+
 
 def train_one_epoch_multitask(
         model: nn.Module,
@@ -22,38 +18,64 @@ def train_one_epoch_multitask(
         optimizer: torch.optim.Optimizer,
         criterions: List[torch.nn.Module],
         device: torch.device,
-        data_combine: str = 'sequential',
+        dataloader_mode: str = 'sequential',
         verbose: bool = True,
         current_epoch: int = None,
-        prev_state = None,
+        prev_state: List[Iterable] = None,
         weights: List[int] = [1, 1, 1],
 ):
-    model.train()
-    if data_combine == 'exhaust':
-        train_exhaust(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch, weights)
-        return 
+    if dataloader_mode == 'exhaust':
+        train_epoch_exhaust(
+            model=model,
+            train_dataloaders=train_dataloaders,
+            optimizer=optimizer,
+            criterions=criterions,
+            device=device,
+            verbose=verbose,
+            current_epoch=current_epoch,
+            weights=weights
+        )
     
-    if data_combine == 'sequential':
-        train_sequential(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
-        return 
+    elif dataloader_mode == 'sequential':
+        train_epoch_sequential(
+            model=model,
+            train_dataloaders=train_dataloaders,
+            optimizer=optimizer,
+            criterions=criterions,
+            device=device,
+            verbose=verbose,
+            current_epoch=current_epoch,
+        )
     
-    if data_combine == 'min':
-        train_min(model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch)
-        return 
+    elif dataloader_mode == 'min':
+        train_epoch_sequential(
+            model=model,
+            train_dataloaders=train_dataloaders,
+            optimizer=optimizer,
+            criterions=criterions,
+            device=device,
+            verbose=verbose,
+            current_epoch=current_epoch,
+            cut_to_min_size=True
+        )
 
-    if data_combine == 'continuos':
-        return train_continuos(
-            model, train_dataloaders, optimizer, criterions, device, verbose, current_epoch, 
+    elif dataloader_mode == 'continuous':
+        train_epoch_continuous(
+            model=model,
+            train_dataloaders=train_dataloaders,
+            optimizer=optimizer,
+            criterions=criterions,
+            device=device,
+            verbose=verbose,
+            current_epoch=current_epoch,
             prev_data_iters=prev_state
         )
-         
 
-    message = f'{data_combine} is not known data combine strategy.'
-    logger.error(message)
-    raise NotImplementedError(message)
+    else:
+        message = f'{dataloader_mode} is not a known data combine strategy.'
+        logger.error(message)
+        raise NotImplementedError(message)
     
-
-
 
 def train_validation_loop_multitask(
         model: torch.nn.Module,
@@ -70,11 +92,10 @@ def train_validation_loop_multitask(
         save_best_path: str = None,
         overall_config: dict = None,
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
-        data_combine: str = 'sequential',
+        dataloader_mode: str = 'sequential',
         skip_train_eval: int = 1,
         best_metric: dict = {},
-        result: List = [],
-        results_path: str = 'results/results.csv',
+        prior_scores: List = None,
 ):
     """
     Run the train loop with selected parameters while validating the model
@@ -110,13 +131,13 @@ def train_validation_loop_multitask(
         the datasets, etc.). Required if the save_path is provided.
     metric_comparator: Callable[[dict, dict], bool]
         Compares evaluated metrics 
-    data_combine: 
-        strategy to combine training datasets 'exhaust' or 'sequential' or 'min' or 'continuos'
+    dataloader_mode: 
+        strategy to combine training datasets 'exhaust' or 'sequential' or 'min' or 'continuous'
     skip_train_eval: 
         skip every n-th evaluation of training datasets
     best_metric: 
         stores best metric results from previous training
-    result: List
+    prior_scores: List
         stores all previous scores
 
     Returns
@@ -148,8 +169,17 @@ def train_validation_loop_multitask(
         raise NotImplementedError(message)
 
     # Initialization
-    best_metric = {'sentiment': 0, 'paraphrase_classifier': 0, 'paraphrase_regressor': -1, **best_metric}
+    best_metric = {
+        'sentiment': 0,
+        'paraphrase_classifier': 0,
+        'paraphrase_regressor': -1,
+        **best_metric
+    }
     current_epoch = 0
+    if prior_scores is None:
+        resulting_scores = []
+    else:
+        resulting_scores = prior_scores.copy()
 
     logger.info('Starting training and validating the model.')
     epoch_train_state = None
@@ -164,11 +194,13 @@ def train_validation_loop_multitask(
             verbose=True,
             current_epoch=current_epoch,
             weights=weights,
-            data_combine=data_combine,
+            dataloader_mode=dataloader_mode,
             prev_state=epoch_train_state
         )
-
         logger.info(f'Finished training epoch {current_epoch}')
+
+        current_epoch_scores = {}
+        # Validation on train
         if current_epoch % skip_train_eval == 0:
             logger.info(f'Training results for epoch {current_epoch}')
             epoch_train_scores = evaluate_model_multitask(
@@ -178,8 +210,9 @@ def train_validation_loop_multitask(
                 metric,
                 criterion
             )
+            current_epoch_scores['train'] = epoch_train_scores
 
-        # Validation
+        # Validation on val
         logger.info(f'Validation results for epoch {current_epoch}')
         epoch_val_scores = evaluate_model_multitask(
             model,
@@ -188,28 +221,27 @@ def train_validation_loop_multitask(
             metric,
             criterion,
         )
-        
-        scores = {'train': epoch_train_scores, 'val': epoch_val_scores}
-        result.append(scores)
+        current_epoch_scores['val'] = epoch_val_scores
+
+        prior_scores.append(current_epoch_scores)
 
         # Upload to watcher
         if watcher is not None:
             try:
-                watcher_command(scores)
+                watcher_command(current_epoch_scores)
             except Exception as e:
                 logger.error(f'Error loading to watcher at epoch {current_epoch}')
                 raise e
-            
-        # in case of partial evaluation i.e only on sst dataset
+
+        # In case we now train on smaller number of datasets than when
+        # we obtained the best metric.
         current_metric = {**best_metric, **epoch_val_scores['metric']}
         if save_best_path is not None and metric_comparator(current_metric, best_metric):
             best_metric = current_metric
             save_state(model, optimizer, overall_config, save_best_path)
 
         current_epoch += 1
-        
-        save_results(result, results_path)
 
     logger.info(f'Finished training and validation the model.')
 
-    return result, best_metric
+    return resulting_scores, best_metric

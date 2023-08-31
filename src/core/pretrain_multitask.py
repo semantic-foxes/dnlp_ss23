@@ -26,7 +26,6 @@ def pretrain_validation_loop_multitask(
         skip_train_eval: int = 1,
         best_metric: dict = {},
         result: List = [],
-        results_path: str = 'results/results.csv',
 ):
     """
     Run the train loop with selecting parameters while validating the model
@@ -53,12 +52,10 @@ def pretrain_validation_loop_multitask(
             watcher=watcher,
             save_best_path=save_best_path,
             overall_config=overall_config,
-            data_combine=data_combine,
+            dataloader_mode=data_combine,
             metric_comparator=metric_comparator,
             verbose=verbose,
             skip_train_eval=skip_train_eval,
             best_metric=best_metric,
-            result=result,
-            results_path=results_path,
         )
     return result, best_metric
