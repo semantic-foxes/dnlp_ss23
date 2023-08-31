@@ -26,6 +26,7 @@ def pretrain_validation_loop_multitask(
         skip_train_eval: int = 1,
         best_metric: dict = {},
         prior_scores: List = [],
+        skip_optimizer_step: int = 1,
 ):
     """
     Run the train loop with selecting parameters while validating the model
@@ -58,5 +59,6 @@ def pretrain_validation_loop_multitask(
             skip_train_eval=skip_train_eval,
             best_metric=best_metric,
             prior_scores=prior_scores,
+            skip_optimizer_step=skip_optimizer_step,
         )
     return result, best_metric

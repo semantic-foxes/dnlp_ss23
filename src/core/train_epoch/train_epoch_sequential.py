@@ -56,6 +56,8 @@ def train_epoch_sequential(
                 desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks'
             )
 
+    optimizer.zero_grad()
+    
     for dataloader, criterion in zip(train_dataloaders, criterions):
         task = dataloader.dataset.task
         batches_used = 0

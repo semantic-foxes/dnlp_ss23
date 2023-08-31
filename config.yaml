@@ -39,6 +39,7 @@ train:
   dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   skip_train_eval: 2 # number of times to skip evaluation of train datasets
   max_train_size: null # null - reads the whole dataset, ~6050 - min 
+  skip_optimizer_step: 1 # number of times to skip optimizer.step() -- only for 'continuous'
 
 
 predict:

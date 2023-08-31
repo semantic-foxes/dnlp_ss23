@@ -38,6 +38,9 @@ if __name__ == "__main__":
     config_bert = CONFIG['bert_model']
     config_train = CONFIG['train']
 
+    skip_optimizer_step = config_train.get('skip_optimizer_step')
+    skip_optimizer_step = 1 if skip_optimizer_step is None else skip_optimizer_step
+
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
 
@@ -193,7 +196,8 @@ if __name__ == "__main__":
         verbose=False,
         watcher=CONFIG['watcher']['type'],
         skip_train_eval=config_train['skip_train_eval'],
-        best_metric=best_metric
+        best_metric=best_metric,
+        skip_optimizer_step=skip_optimizer_step,
     )
 
     load_state(model, device, config_train['checkpoint_path'])

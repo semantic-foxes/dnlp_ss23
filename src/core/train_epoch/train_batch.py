@@ -41,14 +41,14 @@ def train_one_batch_multitask(
         optimizer: torch.optim.Optimizer,
         criterion: torch.nn.Module,
         device: torch.device,
-        task: str
+        task: str,
+        make_optimizer_step: bool = True,
 ):
-    optimizer.zero_grad()
-
     predictions = _batch_forward(batch, model, task, device)
   
     loss = criterion(predictions, batch['targets']).sum()
     loss.backward()
-    optimizer.step()
 
-
+    if make_optimizer_step:
+        optimizer.step()
+        optimizer.zero_grad()

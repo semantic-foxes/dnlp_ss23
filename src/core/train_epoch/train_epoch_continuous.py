@@ -1,11 +1,11 @@
 from typing import List
+import numpy as np
 
 from tqdm import tqdm
 
 import torch
 from torch import nn
 
-from src.core.train_epoch.sample_task import sample_task_from_pool
 from src.core.train_epoch.train_batch import train_one_batch_multitask
 from src.utils import logger
 
@@ -19,7 +19,8 @@ def train_epoch_continuous(
         number_of_batches: int = None,
         verbose: bool = True,
         current_epoch: int = None,
-        prev_data_iters: List[iter] = None
+        prev_data_iters: List[iter] = None,
+        skip_optimizer_step: int = 1,
 ):
     """
     Train mode in which the dataloaders are restarted until the required
@@ -55,12 +56,13 @@ def train_epoch_continuous(
 
     data_iters = [iter(x) for x in train_dataloaders] if prev_data_iters is None else prev_data_iters
 
-    for _ in pbar:
-        batch, criterion, task, number_chosen = sample_task_from_pool(
-            dataloaders=data_iters,
-            batches_left=[number_of_batches + 1, ] * len(data_iters),
-            criterions=criterions,
-        )
+    optimizer.zero_grad()
+
+    for i in pbar:
+        number_chosen = np.random.choice(range(len(data_iters)))
+        batch = next(data_iters[number_chosen])
+        criterion = criterions[number_chosen]
+        task = data_iters[number_chosen]._dataset.task
 
         # Ensure the next item is obtainable and reset a dataloader
         try:
@@ -69,6 +71,14 @@ def train_epoch_continuous(
             data_iters[number_chosen] = iter(train_dataloaders[number_chosen])
             logger.info(f'Resetting {task} dataloader.')
 
-        train_one_batch_multitask(model, batch, optimizer, criterion, device, task)
+        train_one_batch_multitask(
+            model,
+            batch,
+            optimizer,
+            criterion,
+            device,
+            task,
+            make_optimizer_step=i % skip_optimizer_step == 0,
+        )
 
     return data_iters

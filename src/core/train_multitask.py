@@ -23,6 +23,7 @@ def train_one_epoch_multitask(
         current_epoch: int = None,
         prev_state: List[Iterable] = None,
         weights: List[int] = [1, 1, 1],
+        skip_optimizer_step: int = 1,
 ):
     if dataloader_mode == 'exhaust':
         train_epoch_exhaust(
@@ -68,7 +69,8 @@ def train_one_epoch_multitask(
             device=device,
             verbose=verbose,
             current_epoch=current_epoch,
-            prev_data_iters=prev_state
+            prev_data_iters=prev_state,
+            skip_optimizer_step=skip_optimizer_step,
         )
 
     else:
@@ -96,6 +98,7 @@ def train_validation_loop_multitask(
         skip_train_eval: int = 1,
         best_metric: dict = {},
         prior_scores: List = [],
+        skip_optimizer_step: int = 1,
 ):
     """
     Run the train loop with selected parameters while validating the model
@@ -191,7 +194,8 @@ def train_validation_loop_multitask(
             current_epoch=current_epoch,
             weights=weights,
             dataloader_mode=dataloader_mode,
-            prev_state=epoch_train_state
+            prev_state=epoch_train_state,
+            skip_optimizer_step=skip_optimizer_step,
         )
         logger.info(f'Finished training epoch {current_epoch}')
 
