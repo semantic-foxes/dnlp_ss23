@@ -40,7 +40,7 @@ def train_epoch_exhaust(
             not_exhausted_criterions
         )
 
-        predictions = _batch_forward(batch, model, task, device, train_mode)
+        predictions = _batch_forward(batch, model, task, device, criterion, train_mode)
 
         if verbose:
             pbar.update(len(batch['targets']))
@@ -56,7 +56,7 @@ def train_epoch_exhaust(
                 number_chosen
             )
 
-            predictions = _batch_forward(batch, model, task, device, train_mode)
+            predictions = _batch_forward(batch, model, task, device, criterion, train_mode)
 
             if verbose:
                 pbar.update(len(batch['targets']))
