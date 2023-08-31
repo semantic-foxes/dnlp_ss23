@@ -20,6 +20,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default='config.yaml')
     parser.add_argument("--restore", action='store_true')
+    parser.add_argument("--id", type=str, default='')
 
     args = parser.parse_args()
     return args
@@ -49,6 +50,8 @@ if __name__ == "__main__":
             project=CONFIG['watcher']['project_name'],
             config=CONFIG,
             mode=CONFIG['watcher']['mode'],
+            resume='must' if args.restore else args.restore,
+            id=args.id if args.id else None,
         )
         watcher = 'wandb'
 
