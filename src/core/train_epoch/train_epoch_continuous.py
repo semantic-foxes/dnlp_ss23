@@ -79,7 +79,7 @@ def train_epoch_continuous(
             criterion,
             device,
             task,
-            make_optimizer_step=i % skip_optimizer_step == 0,
+            make_optimizer_step=(1+i) % skip_optimizer_step == 0,
         )
 
     return data_iters
