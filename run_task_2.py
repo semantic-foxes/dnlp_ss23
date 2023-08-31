@@ -41,6 +41,13 @@ if __name__ == "__main__":
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
 
+    # TODO: keep default values separately
+    train_mode = config_train.get('train_mode', 'standard')
+    if train_mode == 'contrastive':
+        exp_factor = config_train.get('exp_factor', 2)
+    if train_mode == 'triplet_unsupervised':
+        triplet_dropout_rate = config_train.get('triplet_dropout_rate', 0.1)
+
     if CONFIG['watcher']['type'] == 'wandb':
         wandb.init(
             project=CONFIG['watcher']['project_name'],
@@ -56,12 +63,6 @@ if __name__ == "__main__":
         message = 'ERROR: Unsupported watcher selected.'
         logger.error(message)
         raise NotImplementedError(message)
-
-    exp_factor = config_dataloader.get('exp_factor')
-    if exp_factor is not None:
-        inflation_params = (config_dataloader['batch_size'], exp_factor)
-    else:
-        inflation_params = None
 
     # Create datasets
     sst_train_dataset = SSTDataset(
@@ -81,7 +82,6 @@ if __name__ == "__main__":
     quora_train_dataset = SentenceSimilarityDataset(
         config_quora['train_path'],
         return_targets=True,
-        inflation_params=inflation_params,
         nrows=config_train.get('max_train_size'),
     )
     quora_val_dataset = SentenceSimilarityDataset(
@@ -98,7 +98,6 @@ if __name__ == "__main__":
         config_sts['train_path'],
         binary_task=False,
         return_targets=True,
-        inflation_params=inflation_params,
         nrows=config_train.get('max_train_size'),
     )
     sts_val_dataset = SentenceSimilarityDataset(
@@ -113,17 +112,51 @@ if __name__ == "__main__":
     )
 
     # Create dataloaders
-    train_dataloaders = [
-        DataLoader(
-            x,
-            shuffle=True,
-            drop_last=True,
-            collate_fn=x.collate_fn,
-            batch_size=config_dataloader['batch_size'],
-            num_workers=config_dataloader['num_workers'],
-        )
-        for x in [sst_train_dataset, quora_train_dataset, sts_train_dataset]
-    ]
+    sst_train_dataloader = DataLoader(
+        sst_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=sst_train_dataset.collate_fn,
+        batch_size=config_dataloader['batch_size'],
+        num_workers=config_dataloader['num_workers'],
+    )
+    if train_mode == 'contrastive':
+        train_dataloaders = [sst_train_dataloader] + [
+            DataLoader(
+                x,
+                shuffle=True,
+                drop_last=True,
+                collate_fn=x.collate_fn_contrastive(exp_factor),
+                batch_size=config_dataloader['batch_size'],
+                num_workers=config_dataloader['num_workers'],
+            )
+            for x in [quora_train_dataset, sts_train_dataset]
+        ]
+    elif train_mode == 'triplet_unsupervised':
+        train_dataloaders = [sst_train_dataloader] + [
+            DataLoader(
+                x,
+                shuffle=True,
+                drop_last=True,
+                collate_fn=x.collate_fn_triplet_unsupervised(triplet_dropout_rate),
+                batch_size=config_dataloader['batch_size'],
+                num_workers=config_dataloader['num_workers'],
+            )
+            for x in [quora_train_dataset, sts_train_dataset]
+        ]
+    else:
+        train_dataloaders = [sst_train_dataloader] + [
+            DataLoader(
+                x,
+                shuffle=True,
+                drop_last=True,
+                collate_fn=x.collate_fn,
+                batch_size=config_dataloader['batch_size'],
+                num_workers=config_dataloader['num_workers'],
+            )
+            for x in [quora_train_dataset, sts_train_dataset]
+        ]
+
     val_dataloaders = [
         DataLoader(
             x,

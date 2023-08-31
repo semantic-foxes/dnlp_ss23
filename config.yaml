@@ -37,6 +37,7 @@ train:
   lr: 0.001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
+  train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet_unsupervised'
   skip_train_eval: 2 # number of times to skip evaluation of train datasets
   max_train_size: null # null - reads the whole dataset, ~6050 - min 
 
