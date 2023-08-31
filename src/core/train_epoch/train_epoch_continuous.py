@@ -60,16 +60,17 @@ def train_epoch_continuous(
 
     for i in pbar:
         number_chosen = np.random.choice(range(len(data_iters)))
-        batch = next(data_iters[number_chosen])
         criterion = criterions[number_chosen]
         task = data_iters[number_chosen]._dataset.task
 
-        # Ensure the next item is obtainable and reset a dataloader
+        # reset a dataloader if ended
         try:
-            next(data_iters[number_chosen])
+            batch = next(data_iters[number_chosen])
         except StopIteration:
             data_iters[number_chosen] = iter(train_dataloaders[number_chosen])
             logger.info(f'Resetting {task} dataloader.')
+
+            batch = next(data_iters[number_chosen])
 
         train_one_batch_multitask(
             model,
