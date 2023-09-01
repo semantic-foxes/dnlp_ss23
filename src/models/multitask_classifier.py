@@ -135,4 +135,6 @@ class MultitaskBERT(nn.Module):
         self.requires_grad_(freeze)
         self.sentiment_classifier.requires_grad_(True)
         self.paraphrase_classifier.requires_grad_(True)
-        self.paraphrase_regressor.requires_grad_(True)
+        self.paraphrase_regressor_1.requires_grad_(True)
+        self.paraphrase_regressor_2.requires_grad_(True)
+        self.paraphrase_decision.requires_grad_(True)
