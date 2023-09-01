@@ -172,6 +172,9 @@ if __name__ == "__main__":
     metrics = [accuracy, accuracy, pearson_correlation]
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
+    if CONFIG.get('use_pearson_loss'):
+        criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation]
+
     if config_train.get('add_cosine_loss'):
         cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
 
@@ -218,6 +221,6 @@ if __name__ == "__main__":
     logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
     
-    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss, CONFIG)
     
-    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values())
+    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values(), CONFIG)

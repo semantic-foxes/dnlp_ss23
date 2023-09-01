@@ -15,6 +15,7 @@ def evaluate_model_multitask(
         metrics: List[Callable],
         criterions: List[torch.nn.Module] = None,
         cosine_loss = None,
+        overall_config: dict = {},
 ) -> dict:
     """
     Evaluates the model using the given dataloader
@@ -38,6 +39,9 @@ def evaluate_model_multitask(
         The resulting criterion and metric or just the metric if no criterion
         is provided.
     """
+    use_pearson_loss = False
+    if overall_config.get('use_pearson_loss'):
+        use_pearson_loss = True
 
     model.eval()
     if type(eval_dataloaders) is not list and type(eval_dataloaders) is not tuple:
@@ -96,9 +100,6 @@ def evaluate_model_multitask(
                 targets = targets.to(device)
 
                 predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-
-                # projection usually decreases error
-                predictions = torch.clip(predictions, 0, 5)
 
             else:
                 raise NotImplementedError

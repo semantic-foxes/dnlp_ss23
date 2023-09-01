@@ -218,6 +218,7 @@ def train_validation_loop_multitask(
                 metric,
                 criterion,
                 cosine_loss,
+                overall_config,
             )
             current_epoch_scores['train'] = epoch_train_scores
 
@@ -230,6 +231,7 @@ def train_validation_loop_multitask(
             metric,
             criterion,
             cosine_loss,
+            overall_config,
         )
         current_epoch_scores['val'] = epoch_val_scores
 

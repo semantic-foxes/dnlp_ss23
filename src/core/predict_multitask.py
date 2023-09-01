@@ -11,7 +11,8 @@ def generate_predictions(
         model: nn.Module,
         dataloader: torch.utils.data.DataLoader,
         device: torch.device,
-        dataloader_message: str = 'test'
+        dataloader_message: str = 'test',
+        overall_config: dict = {},
 ) -> pd.DataFrame:
     """
     Generates predictions for the given dataloader.
@@ -29,6 +30,9 @@ def generate_predictions(
     result: pd.DataFrame
         The resulting predictions.
     """
+    use_pearson_loss = False
+    if overall_config.get('use_pearson_loss'):
+        use_pearson_loss = True
 
     model.eval()
     # result = pd.DataFrame(columns=['prediction'])
@@ -73,8 +77,7 @@ def generate_predictions(
             attention_masks_2 = attention_masks_2.to(device)
 
             predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-            # projection usually decreases error
-            predictions = torch.clip(predictions, 0, 5)
+
         else:
             raise NotImplementedError
         result += predictions.cpu().numpy().tolist()
@@ -92,6 +95,7 @@ def generate_predictions_multitask(
         device: torch.device,
         dataloaders: torch.utils.data.DataLoader,
         filepaths: List[str],
+        overall_config: dict = {},
 ) -> None:
 
     for test_loader, save_path in zip(dataloaders, filepaths):
@@ -99,7 +103,8 @@ def generate_predictions_multitask(
             model=model,
             dataloader=test_loader,
             device=device,
-            dataloader_message=test_loader.dataset.task
+            dataloader_message=test_loader.dataset.task,
+            overall_config=overall_config,
         )
 
         predictions.to_csv(save_path)

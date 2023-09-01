@@ -42,6 +42,7 @@ train:
   max_train_size: 6050 # null - reads the whole dataset, ~6050 - min 
   skip_optimizer_step: 1 # number of times to skip optimizer.step() -- only for 'continuous'
   add_cosine_loss: True
+use_pearson_loss: True # for paraphrase regression
 
 
 predict:
