@@ -63,6 +63,10 @@ class AdamW(Optimizer):
                     state['step'] = 0
                     state['m'] = torch.zeros_like(grad)
                     state['v'] = torch.zeros_like(grad)
+                
+                # Weight decay
+                if group['weight_decay']:
+                    p.data.add_(-p.data * alpha * group['weight_decay'])
 
                 # m and v update
                 state['step'] += 1
@@ -81,8 +85,5 @@ class AdamW(Optimizer):
 
                 # Parameter update
                 p.data.add_(-a * m / (torch.sqrt(v) + group['eps']))
-                # Weight decay
-                if group['weight_decay']:
-                    p.data.add_(-p.data * alpha * group['weight_decay'])
 
         return loss
