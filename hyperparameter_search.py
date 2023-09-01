@@ -16,7 +16,7 @@ from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.core import train_one_epoch_multitask, evaluate_model_multitask
 from src.utils import (logger, generate_device,
                        parse_hyperparameters_dict, seed_everything,
-                       generate_optuna_report)
+                       optuna_save_callback)
 
 
 def main():
@@ -161,24 +161,16 @@ def main():
 
     sampler = TPESampler(seed=42)
     study = optuna.create_study(direction='maximize', sampler=sampler)
+
     study.optimize(
         objective,
         n_trials=HYPERPARAMETER_CONFIG['n_trials'],
-        show_progress_bar=False
-    )
-
-    report = generate_optuna_report(
-        study,
-        [
-            'sentiment',
-            'paraphrase_classifier',
-            'paraphrase_regressor'
-        ]
+        show_progress_bar=False,
+        callbacks=[optuna_save_callback, ]
     )
 
     logger.info(f'All trials finished, best result is {study.best_trial.user_attrs}\n'
                 f'achieved with {study.best_trial.params}')
-    report.to_csv('result.csv')
 
 
 if __name__ == '__main__':
