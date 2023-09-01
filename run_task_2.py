@@ -173,7 +173,7 @@ if __name__ == "__main__":
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
     if config_train.get('add_cosine_loss'):
-        cosine_loss = nn.CosineEmbeddingLoss()
+        cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
 
     best_metric = {}
     if args.restore:
