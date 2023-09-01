@@ -51,9 +51,27 @@ class MultitaskBERT(nn.Module):
             raise AttributeError('Incorrect mode for BERT model. Should be'
                                  'either \'pretrain\' or \'finetune\'.')
 
-        self.sentiment_classifier = nn.Linear(hidden_size, self.num_labels)
-        self.paraphrase_classifier = nn.Linear(2*hidden_size, 2)
-        self.paraphrase_regressor = nn.Linear(2*hidden_size, 1)
+        self.sentiment_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, self.num_labels),
+            nn.ReLU(),
+        )
+        self.paraphrase_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(2*hidden_size, 2),
+            nn.ReLU(),
+        )
+        self.paraphrase_regressor_1 = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.ReLU(),
+        )
+        self.paraphrase_regressor_2 = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.ReLU(),
+        )
+        self.paraphrase_decision = nn.CosineSimilarity()
 
     def forward(
             self,
@@ -107,8 +125,10 @@ class MultitaskBERT(nn.Module):
                            input_ids_2, attention_mask_2):
         bert_output_1 = self.bert(input_ids_1, attention_mask_1)['pooler_output']
         bert_output_2 = self.bert(input_ids_2, attention_mask_2)['pooler_output']
-        bert_output = torch.cat((bert_output_1, bert_output_2), dim=1)
-        result = self.paraphrase_regressor(bert_output)
+        embedding_processed_1 = self.paraphrase_regressor_1(bert_output_1)
+        embedding_processed_2 = self.paraphrase_regressor_2(bert_output_2)
+        # Since the target is 0-5 in this task as well :/
+        result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 2.5 + 2.5
         return result.flatten()
 
     def freeze_bert(self, freeze: bool):

@@ -15,7 +15,7 @@ data:
     train_path: 'data/quora-train.csv'
     val_path: 'data/quora-dev.csv'
     test_path: 'data/quora-test-student.csv'
-    weight: 10 # 10 times larger dataset
+    weight: 1 # 10 times larger dataset
   sts_dataset:
     train_path: 'data/sts-train.csv'
     val_path: 'data/sts-dev.csv'
@@ -35,15 +35,15 @@ bert_model:
 
 train:
   n_epochs: 16
-  lr: 0.0001
+  lr: 0.00001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   skip_train_eval: 5 # number of times to skip evaluation of train datasets
-  max_train_size: null # null - reads the whole dataset, ~6050 - min 
-  skip_optimizer_step: 4 # number of times to skip optimizer.step() -- only for 'continuous'
+  max_train_size: 6050 # null - reads the whole dataset, ~6050 - min 
+  skip_optimizer_step: 3 # do optimizer.step() every n-th time -- only for 'continuous'
   add_cosine_loss: False
   use_pearson_loss: True # for paraphrase regression
-  freeze_bert_steps: 3 # -- only for 'continuous
+  freeze_bert_steps: 1 # -- only for 'continuous
   is_multi_batch: True # -- only for 'continuous
 
 
