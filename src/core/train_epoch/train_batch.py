@@ -27,12 +27,17 @@ def _batch_forward(
         attention_masks_1 = attention_masks_1.to(device)
         attention_masks_2 = attention_masks_2.to(device)
 
+        if task == 'paraphrase_classifier':
+            # predictions with embeddings
+            return model(task, ids_1, attention_masks_1, ids_2, attention_masks_2, True)
+        
         predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+
 
     else:
         raise NotImplementedError
 
-    return predictions
+    return (predictions, [])
 
 
 def train_one_batch_multitask(
@@ -42,14 +47,22 @@ def train_one_batch_multitask(
         criterion: torch.nn.Module,
         device: torch.device,
         task: str,
-        make_optimizer_step: bool = True,
+        is_optimizer_step: bool = True,
+        loss_divisor: int = 1,
+        cosine_loss = None
 ):
-    predictions = _batch_forward(batch, model, task, device)
+    predictions, embeddings = _batch_forward(batch, model, task, device)
     targets = batch['targets'].to(device)
     
-    loss = criterion(predictions, targets).sum()
+    loss = criterion(predictions, targets).sum() / loss_divisor
+    if cosine_loss and task == 'paraphrase_classifier':
+        print(embeddings)
+        print(targets)
+        # targets should be -1,1
+        loss = loss + cosine_loss(*embeddings, 2*targets-1) / 2
+        
     loss.backward()
 
-    if make_optimizer_step:
+    if is_optimizer_step:
         optimizer.step()
         optimizer.zero_grad()

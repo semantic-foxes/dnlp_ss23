@@ -21,6 +21,8 @@ def train_epoch_continuous(
         current_epoch: int = None,
         prev_data_iters: List[iter] = None,
         skip_optimizer_step: int = 1,
+        weights: List[int] = [1, 10, 1], 
+        cosine_loss = None,
 ):
     """
     Train mode in which the dataloaders are restarted until the required
@@ -58,11 +60,8 @@ def train_epoch_continuous(
 
     optimizer.zero_grad()
 
-    for i in pbar:
-        number_chosen = np.random.choice(range(len(data_iters)))
-        criterion = criterions[number_chosen]
+    def sample_and_train_batch(number_chosen, is_optimizer_step=True, loss_divisor=1):
         task = data_iters[number_chosen]._dataset.task
-
         # reset a dataloader if ended
         try:
             batch = next(data_iters[number_chosen])
@@ -76,10 +75,24 @@ def train_epoch_continuous(
             model,
             batch,
             optimizer,
-            criterion,
-            device,
-            task,
-            make_optimizer_step=(1+i) % skip_optimizer_step == 0,
+            criterion=criterions[number_chosen],
+            device=device,
+            task=task,
+            is_optimizer_step=is_optimizer_step,
+            loss_divisor=loss_divisor,
+            cosine_loss=cosine_loss,
         )
+
+    for i in pbar:
+        number_chosen = np.random.choice(range(len(data_iters)))
+        weight = weights[number_chosen]
+
+        is_optimizer_step = (1+i) % skip_optimizer_step == 0
+
+        # squeeze extra data
+        for _ in range(weight-1):
+            sample_and_train_batch(number_chosen, False, 1/weight)
+        
+        sample_and_train_batch(number_chosen, is_optimizer_step, 1/weight)
 
     return data_iters

@@ -14,6 +14,7 @@ def evaluate_model_multitask(
         device: torch.device,
         metrics: List[Callable],
         criterions: List[torch.nn.Module] = None,
+        cosine_loss = None,
 ) -> dict:
     """
     Evaluates the model using the given dataloader
@@ -44,6 +45,8 @@ def evaluate_model_multitask(
 
     losses = {}
     metric = {}
+    if cosine_loss:
+        losses['cosine_similarity'] = 0
 
     for i, dataloader in enumerate(eval_dataloaders):
         task = dataloader.dataset.task
@@ -61,7 +64,26 @@ def evaluate_model_multitask(
 
                 predictions = model(task, ids, attention_masks)
 
-            elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
+            elif task == 'paraphrase_classifier':
+                ids_1, attention_masks_1, ids_2, attention_masks_2, targets = \
+                    (batch['token_ids_1'], batch['attention_masks_1'],
+                     batch['token_ids_2'], batch['attention_masks_2'],
+                     batch['targets'])
+
+                ids_1 = ids_1.to(device)
+                ids_2 = ids_2.to(device)
+                attention_masks_1 = attention_masks_1.to(device)
+                attention_masks_2 = attention_masks_2.to(device)
+                targets = targets.to(device)
+
+                if cosine_loss:
+                    predictions, embeddings = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2, True)
+                    losses['cosine_similarity'] += cosine_loss(*embeddings, 2*targets-1)
+                else:
+                    predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+                
+
+            elif task == 'paraphrase_regressor':
                 ids_1, attention_masks_1, ids_2, attention_masks_2, targets = \
                     (batch['token_ids_1'], batch['attention_masks_1'],
                      batch['token_ids_2'], batch['attention_masks_2'],
@@ -75,9 +97,9 @@ def evaluate_model_multitask(
 
                 predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
 
-                if task == 'paraphrase_regressor':
-                    # projection usually decreases error
-                    predictions = torch.clip(predictions, 0, 5)
+                # projection usually decreases error
+                predictions = torch.clip(predictions, 0, 5)
+
             else:
                 raise NotImplementedError
             preds_all.append(predictions) 

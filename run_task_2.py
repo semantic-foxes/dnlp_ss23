@@ -152,6 +152,10 @@ if __name__ == "__main__":
         # the order of datasets must match the order in config.yaml (predictions save_path)
     ]
 
+    weights = [1, 10, 1]
+    if config_quora.get('weight'):
+        weights = [1, config_quora.get('weight'), 1]
+
     logger.info('Create Model')
     model = MultitaskBERT(
         num_labels=5,
@@ -168,10 +172,13 @@ if __name__ == "__main__":
     metrics = [accuracy, accuracy, pearson_correlation]
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
+    if config_train.get('add_cosine_loss'):
+        cosine_loss = nn.CosineEmbeddingLoss()
+
     best_metric = {}
     if args.restore:
         load_state(model, device, config_bert['weights_path'])
-        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
+        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
         best_metric = best_scores['metric']
 
     # Optimizer
@@ -197,12 +204,13 @@ if __name__ == "__main__":
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
         dataloader_mode=config_train['dataloader_mode'],
-        weights=[1, 10, 1],
+        weights=weights,
         verbose=False,
         watcher=CONFIG['watcher']['type'],
         skip_train_eval=config_train['skip_train_eval'],
         best_metric=best_metric,
         skip_optimizer_step=skip_optimizer_step,
+        cosine_loss=cosine_loss,
     )
 
     load_state(model, device, config_train['checkpoint_path'])
@@ -210,6 +218,6 @@ if __name__ == "__main__":
     logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
     
-    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
     
     generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values())

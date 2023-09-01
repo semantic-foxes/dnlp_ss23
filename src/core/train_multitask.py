@@ -22,8 +22,9 @@ def train_one_epoch_multitask(
         verbose: bool = True,
         current_epoch: int = None,
         prev_state: List[Iterable] = None,
-        weights: List[int] = [1, 1, 1],
+        weights: List[int] = [1, 10, 1],
         skip_optimizer_step: int = 1,
+        cosine_loss = None,
 ):
     if dataloader_mode == 'exhaust':
         train_epoch_exhaust(
@@ -73,6 +74,8 @@ def train_one_epoch_multitask(
             current_epoch=current_epoch,
             prev_data_iters=prev_state,
             skip_optimizer_step=skip_optimizer_step,
+            cosine_loss=cosine_loss,
+            weights=weights,
         )
 
     else:
@@ -101,6 +104,7 @@ def train_validation_loop_multitask(
         best_metric: dict = {},
         prior_scores: List = [],
         skip_optimizer_step: int = 1,
+        cosine_loss = None,
 ):
     """
     Run the train loop with selected parameters while validating the model
@@ -181,6 +185,7 @@ def train_validation_loop_multitask(
         **best_metric
     }
     current_epoch = 0
+    resulting_scores = []
 
     logger.info('Starting training and validating the model.')
     epoch_train_state = None
@@ -198,6 +203,7 @@ def train_validation_loop_multitask(
             dataloader_mode=dataloader_mode,
             prev_state=epoch_train_state,
             skip_optimizer_step=skip_optimizer_step,
+            cosine_loss=cosine_loss,
         )
         logger.info(f'Finished training epoch {current_epoch}')
 
@@ -210,7 +216,8 @@ def train_validation_loop_multitask(
                 train_loader,
                 device,
                 metric,
-                criterion
+                criterion,
+                cosine_loss,
             )
             current_epoch_scores['train'] = epoch_train_scores
 
@@ -222,6 +229,7 @@ def train_validation_loop_multitask(
             device,
             metric,
             criterion,
+            cosine_loss,
         )
         current_epoch_scores['val'] = epoch_val_scores
 

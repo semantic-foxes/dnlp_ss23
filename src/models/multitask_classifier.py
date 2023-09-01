@@ -61,7 +61,8 @@ class MultitaskBERT(nn.Module):
             input_ids_1: torch.Tensor,
             attention_mask_1: torch.Tensor,
             input_ids_2: torch.Tensor = None,
-            attention_mask_2: torch.Tensor = None
+            attention_mask_2: torch.Tensor = None,
+            return_embeddings: bool = False,
     ):
         if task == 'sentiment':
             result = self.predict_sentiment(input_ids_1, attention_mask_1)
@@ -69,8 +70,12 @@ class MultitaskBERT(nn.Module):
         elif task == 'paraphrase_classifier':
             if input_ids_2 is None or attention_mask_2 is None:
                 raise AttributeError
-            result = self.predict_paraphrase(input_ids_1, attention_mask_1,
+            
+            result, *embeddings = self.predict_paraphrase(input_ids_1, attention_mask_1,
                                              input_ids_2, attention_mask_2)
+            if return_embeddings:
+                return result, embeddings
+
 
         elif task == 'paraphrase_regressor':
             if input_ids_2 is None or attention_mask_2 is None:
@@ -95,7 +100,7 @@ class MultitaskBERT(nn.Module):
         bert_output_2 = self.bert(input_ids_2, attention_mask_2)['pooler_output']
         bert_output = torch.cat((bert_output_1, bert_output_2), dim=1)
         result = self.paraphrase_classifier(bert_output)
-        return result
+        return result, bert_output_1, bert_output_2
 
     def predict_similarity(self,
                            input_ids_1, attention_mask_1,
