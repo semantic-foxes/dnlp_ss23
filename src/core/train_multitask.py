@@ -63,8 +63,8 @@ def train_one_epoch_multitask(
         )
 
     elif dataloader_mode == 'continuous':
-        if skip_optimizer_step > 1:
-            skip_optimizer_step += 2 * current_epoch
+        # if skip_optimizer_step > 1:
+        #     skip_optimizer_step += 2 * current_epoch
         train_epoch_continuous(
             model=model,
             train_dataloaders=train_dataloaders,
