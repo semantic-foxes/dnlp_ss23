@@ -6,6 +6,7 @@ checkpoints
 test_run.py
 src/core/core.py
 wandb
+slurm_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
