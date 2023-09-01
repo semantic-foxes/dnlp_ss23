@@ -25,6 +25,7 @@ def train_one_epoch_multitask(
         weights: List[int] = [1, 10, 1],
         skip_optimizer_step: int = 1,
         cosine_loss = None,
+        overall_config = {},
 ):
     if dataloader_mode == 'exhaust':
         train_epoch_exhaust(
@@ -76,6 +77,7 @@ def train_one_epoch_multitask(
             skip_optimizer_step=skip_optimizer_step,
             cosine_loss=cosine_loss,
             weights=weights,
+            overall_config=overall_config,
         )
 
     else:
@@ -204,6 +206,7 @@ def train_validation_loop_multitask(
             prev_state=epoch_train_state,
             skip_optimizer_step=skip_optimizer_step,
             cosine_loss=cosine_loss,
+            overall_config=overall_config,
         )
         logger.info(f'Finished training epoch {current_epoch}')
 

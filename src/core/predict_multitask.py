@@ -30,9 +30,6 @@ def generate_predictions(
     result: pd.DataFrame
         The resulting predictions.
     """
-    use_pearson_loss = False
-    if overall_config.get('use_pearson_loss'):
-        use_pearson_loss = True
 
     model.eval()
     # result = pd.DataFrame(columns=['prediction'])

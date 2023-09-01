@@ -39,9 +39,6 @@ def evaluate_model_multitask(
         The resulting criterion and metric or just the metric if no criterion
         is provided.
     """
-    use_pearson_loss = False
-    if overall_config.get('use_pearson_loss'):
-        use_pearson_loss = True
 
     model.eval()
     if type(eval_dataloaders) is not list and type(eval_dataloaders) is not tuple:

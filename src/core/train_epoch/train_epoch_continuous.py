@@ -23,6 +23,7 @@ def train_epoch_continuous(
         skip_optimizer_step: int = 1,
         weights: List[int] = [1, 10, 1], 
         cosine_loss = None,
+        overall_config = {},
 ):
     """
     Train mode in which the dataloaders are restarted until the required
@@ -45,10 +46,13 @@ def train_epoch_continuous(
     -------
 
     """
+    freeze_bert_steps = overall_config.get('train', {}).get('freeze_bert_steps', 0)
+    is_multi_batch = overall_config.get('train', {}).get('is_multi_batch', True)
+    
     model.train()
 
     if number_of_batches is None:
-        number_of_batches = min([len(x) for x in train_dataloaders]) * len(train_dataloaders)
+        number_of_batches = min([len(x) for x in train_dataloaders])
 
     if verbose:
         pbar = tqdm(range(number_of_batches), leave=False,
@@ -59,9 +63,14 @@ def train_epoch_continuous(
     data_iters = [iter(x) for x in train_dataloaders] if prev_data_iters is None else prev_data_iters
 
     optimizer.zero_grad()
+    optimizer_steps = 1
 
     def sample_and_train_batch(number_chosen, is_optimizer_step=True, loss_divisor=1):
         task = data_iters[number_chosen]._dataset.task
+
+        if is_optimizer_step and freeze_bert_steps:
+            model.freeze_bert(not optimizer_steps % (freeze_bert_steps+1) == 0)
+
         # reset a dataloader if ended
         try:
             batch = next(data_iters[number_chosen])
@@ -83,16 +92,21 @@ def train_epoch_continuous(
             cosine_loss=cosine_loss,
         )
 
+    indices = range(len(data_iters))
     for i in pbar:
-        number_chosen = np.random.choice(range(len(data_iters)))
-        weight = weights[number_chosen]
+        for number_chosen in np.random.choice(indices, replace=not is_multi_batch):
+            weight = weights[number_chosen]
 
-        is_optimizer_step = (1+i) % skip_optimizer_step == 0
+            is_optimizer_step = (1+i) % skip_optimizer_step == 0
 
-        # squeeze extra data
-        for _ in range(weight-1):
-            sample_and_train_batch(number_chosen, False, 1/weight)
+            # squeeze extra data
+            for _ in range(weight-1):
+                sample_and_train_batch(number_chosen, False, 1/weight)
         
-        sample_and_train_batch(number_chosen, is_optimizer_step, 1/weight)
+            sample_and_train_batch(number_chosen, is_optimizer_step, 1/weight)
+
+            if is_optimizer_step:
+                optimizer_steps +=1
 
     return data_iters
+

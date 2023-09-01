@@ -110,3 +110,9 @@ class MultitaskBERT(nn.Module):
         bert_output = torch.cat((bert_output_1, bert_output_2), dim=1)
         result = self.paraphrase_regressor(bert_output)
         return result.flatten()
+
+    def freeze_bert(self, freeze: bool):
+        self.requires_grad_(freeze)
+        self.sentiment_classifier.requires_grad_(True)
+        self.paraphrase_classifier.requires_grad_(True)
+        self.paraphrase_regressor.requires_grad_(True)

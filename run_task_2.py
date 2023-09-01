@@ -173,7 +173,7 @@ if __name__ == "__main__":
     metrics = [accuracy, accuracy, pearson_correlation]
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
-    if CONFIG.get('use_pearson_loss'):
+    if CONFIG.get('train',{}).get('use_pearson_loss'):
         criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation_loss]
 
     if config_train.get('add_cosine_loss'):
