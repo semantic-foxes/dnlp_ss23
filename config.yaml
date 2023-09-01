@@ -36,7 +36,7 @@ train:
   n_epochs: 10
   lr: 0.001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
-  data_combine: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
+  dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   skip_train_eval: 2 # number of times to skip evaluation of train datasets
 
 

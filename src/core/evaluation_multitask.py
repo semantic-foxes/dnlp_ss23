@@ -14,6 +14,7 @@ def evaluate_model_multitask(
         device: torch.device,
         metrics: List[Callable],
         criterions: List[torch.nn.Module] = None,
+        verbose: bool = True
 ) -> dict:
     """
     Evaluates the model using the given dataloader
@@ -50,7 +51,15 @@ def evaluate_model_multitask(
         preds_all = []
         targets_all = []
 
-        for batch in tqdm(dataloader, leave=False, desc=f'Evaluating on {task}'):
+        if verbose:
+            pbar = tqdm(
+                dataloader, leave=False,
+                desc=f'Evaluating on {task} ({i+1}/{len(eval_dataloaders)})'
+            )
+        else:
+            pbar = dataloader
+
+        for batch in pbar:
             if task == 'sentiment':
                 ids, attention_masks, targets = \
                     batch['token_ids'], batch['attention_masks'], batch['targets']
@@ -108,6 +117,7 @@ def evaluation_message(result: dict)->str:
     message += ', '.join(loss_strings)
 
     return message
+
 
 def sum_comparator(current:dict, best:dict)->bool:
     return sum(current.values()) > sum(best.values())
