@@ -28,7 +28,7 @@ bert_model:
   hidden_size: 768
   hidden_dropout_prob: 0.1
   attention_dropout_prob: 0.1
-  bert_mode: 'pretrain' # 'pretrain' or 'finetune'
+  bert_mode: 'finetune' # 'pretrain' or 'finetune'
   local_files_only: False
   weights_path: 'checkpoints/finetune_classifier.pt'
 
