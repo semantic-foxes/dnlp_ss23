@@ -120,21 +120,24 @@ def train_one_batch_contrastive(
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
         task: str,
-        return_predictions: bool = False
+        return_predictions: bool = False,
+        weight: float = 0.5
 ):
+    weight_original = 1 - weight
+    weight_extra = weight / (len(batch_list) - 1)
+    
     optimizer.zero_grad()
-    # TODO: weighted loss
-    if return_predictions:
-        original_batch = batch_list.pop(0)
-        original_predictions = _batch_forward_similarity(original_batch, device, model, task)
-        targets = batch['targets'].to(device)
-        loss = criterion(original_predictions, targets).sum()
-        loss.backward()
+    
+    original_batch = batch_list.pop(0)
+    original_predictions = _batch_forward_similarity(original_batch, device, model, task)
+    targets = original_batch['targets'].to(device)
+    loss = weight_original * criterion(original_predictions, targets).sum()
+    loss.backward()
 
     for batch in batch_list:
         predictions = _batch_forward_similarity(batch, device, model, task)
         targets = batch['targets'].to(device)
-        loss = criterion(predictions, targets).sum()
+        loss = weight_extra * criterion(predictions, targets).sum()
         loss.backward()
 
     optimizer.step()

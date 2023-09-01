@@ -11,3 +11,4 @@ conda install -n base conda-libmamba-solver -y
 conda config --set solver libmamba
 conda env create -f dnlp.yml -y
 conda activate dnlp
+export WANDB_API_KEY=22afe59779abd82e1b93402e3debae92be971453
