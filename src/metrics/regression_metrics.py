@@ -17,3 +17,8 @@ def pearson_correlation(
     # it could be nan if targets are same: tensor([3.2000, 3.2000])
     return torch.nan_to_num(result)
 
+def pearson_correlation_loss(
+        y_pred: torch.Tensor,
+        y_true: torch.Tensor
+):
+    return -pearson_correlation(y_pred, y_true)

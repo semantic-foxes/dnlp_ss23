@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask
 from src.core.pretrain_multitask import pretrain_validation_loop_multitask
+from src.metrics.regression_metrics import pearson_correlation_loss
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
@@ -173,7 +174,7 @@ if __name__ == "__main__":
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
     if CONFIG.get('use_pearson_loss'):
-        criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation]
+        criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation_loss]
 
     if config_train.get('add_cosine_loss'):
         cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
