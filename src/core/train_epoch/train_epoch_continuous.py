@@ -92,9 +92,9 @@ def train_epoch_continuous(
             cosine_loss=cosine_loss,
         )
 
-    indices = range(len(data_iters))
+    size = len(data_iters)
     for i in pbar:
-        for number_chosen in np.random.choice(indices, replace=not is_multi_batch):
+        for number_chosen in np.random.choice(range(size), size, replace=not is_multi_batch):
             weight = weights[number_chosen]
 
             is_optimizer_step = (1+i) % skip_optimizer_step == 0
