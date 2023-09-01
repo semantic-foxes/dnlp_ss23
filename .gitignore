@@ -7,6 +7,7 @@ test_run.py
 src/core/core.py
 wandb
 result.csv
+slurm_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -34,13 +34,13 @@ bert_model:
   weights_path: 'checkpoints/finetune_classifier.pt'
 
 train:
-  n_epochs: 10
+  n_epochs: 16
   lr: 0.00001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   skip_train_eval: 3 # number of times to skip evaluation of train datasets
   max_train_size: 6050 # null - reads the whole dataset, ~6050 - min 
-  skip_optimizer_step: 3 # number of times to skip optimizer.step() -- only for 'continuous'
+  skip_optimizer_step: 4 # number of times to skip optimizer.step() -- only for 'continuous'
   add_cosine_loss: True
   use_pearson_loss: True # for paraphrase regression
   freeze_bert_steps: 3 # -- only for 'continuous
