@@ -176,6 +176,7 @@ if __name__ == "__main__":
     if CONFIG.get('train',{}).get('use_pearson_loss'):
         criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation_loss]
 
+    cosine_loss = None
     if config_train.get('add_cosine_loss'):
         cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
 
