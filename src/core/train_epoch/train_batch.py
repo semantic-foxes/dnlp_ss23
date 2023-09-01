@@ -83,16 +83,15 @@ def _batch_forward_similarity_triplet(batch, model, task, device):
         token_ids_negative.to(device),
         attention_masks_negative.to(device))
 
-    # TODO: Get BERT embeddings
-    #embedding_anchor = model.embed(token_ids_anchor, attention_masks_anchor)
-    #embedding_positive = model.embed(token_ids_positive, attention_masks_positive)
-    #embedding_negative = model.embed(token_ids_negative, attention_masks_negative)
+    embedding_anchor = model('embed', token_ids_anchor, attention_masks_anchor)
+    embedding_positive = model('embed', token_ids_positive, attention_masks_positive)
+    embedding_negative = model('embed', token_ids_negative, attention_masks_negative)
     # TODO: cosine distance
-    #criterion = torch.nn.TripletMarginLoss()
+    # TODO: keep the criterion separately
+    criterion = torch.nn.TripletMarginLoss()
     loss = criterion(embedding_anchor, embedding_positive, embedding_negative).sum()
     loss.backward()
-    # TODO: this is train only!
-    #return predictions
+    #return embedding_anchor, embedding_positive, embedding_negative
 
 # TODO: remove
 def _batch_forward(
@@ -126,5 +125,5 @@ def train_one_batch_multitask(
 ):
     optimizer.zero_grad()
     # TODO: pass correct option instead of 'criterion'
-    predictions = _batch_forward(batch, model, task, device, criterion, train_mode)
+    _batch_forward(batch, model, task, device, criterion, train_mode)
     optimizer.step()
