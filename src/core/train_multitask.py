@@ -88,6 +88,7 @@ def train_validation_loop_multitask(
         criterion: List[torch.nn.Module],
         metric: List[Callable[[torch.Tensor, torch.Tensor], float]],
         train_loader: List[torch.utils.data.DataLoader],
+        train_eval_loader: List[torch.utils.data.DataLoader],
         val_loader: List[torch.utils.data.DataLoader],
         n_epochs: int,
         device: torch.device,
@@ -210,7 +211,7 @@ def train_validation_loop_multitask(
             logger.info(f'Training results for epoch {current_epoch}')
             epoch_train_scores = evaluate_model_multitask(
                 model,
-                train_loader,
+                train_eval_loader,
                 device,
                 metric,
                 criterion

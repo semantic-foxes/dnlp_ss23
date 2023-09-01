@@ -72,11 +72,13 @@ if __name__ == "__main__":
     )
     sst_val_dataset = SSTDataset(
         config_sst['val_path'],
-        return_targets=True
+        return_targets=True,
+        nrows=config_train.get('max_eval_size')
     )
     sst_test_dataset = SSTDataset(
         config_sst['test_path'],
-        return_targets=False
+        return_targets=False,
+        nrows=config_train.get('max_eval_size')
     )
 
     quora_train_dataset = SentenceSimilarityDataset(
@@ -86,12 +88,14 @@ if __name__ == "__main__":
     )
     quora_val_dataset = SentenceSimilarityDataset(
         config_quora['val_path'],
-        return_targets=True
+        return_targets=True,
+        nrows=config_train.get('max_eval_size')
     )
     quora_test_dataset = SentenceSimilarityDataset(
         config_quora['test_path'],
         return_targets=False,
-        index_col=False
+        index_col=False,
+        nrows=config_train.get('max_eval_size')
     )
 
     sts_train_dataset = SentenceSimilarityDataset(
@@ -103,12 +107,14 @@ if __name__ == "__main__":
     sts_val_dataset = SentenceSimilarityDataset(
         config_sts['val_path'],
         binary_task=False,
-        return_targets=True
+        return_targets=True,
+        nrows=config_train.get('max_eval_size')
     )
     sts_test_dataset = SentenceSimilarityDataset(
         config_sts['test_path'],
         binary_task=False,
-        return_targets=False
+        return_targets=False,
+        nrows=config_train.get('max_eval_size')
     )
 
     # Create dataloaders
@@ -120,6 +126,19 @@ if __name__ == "__main__":
         batch_size=config_dataloader['batch_size'],
         num_workers=config_dataloader['num_workers'],
     )
+    
+    train_eval_dataloaders = [sst_train_dataloader] + [
+        DataLoader(
+            x,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=x.collate_fn,
+            batch_size=config_dataloader['batch_size'],
+            num_workers=config_dataloader['num_workers'],
+        )
+        for x in [quora_train_dataset, sts_train_dataset]
+    ]
+
     if train_mode == 'contrastive':
         train_dataloaders = [sst_train_dataloader] + [
             DataLoader(
@@ -145,17 +164,7 @@ if __name__ == "__main__":
             for x in [quora_train_dataset, sts_train_dataset]
         ]
     else:
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn,
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x in [quora_train_dataset, sts_train_dataset]
-        ]
+        train_dataloaders = train_eval_dataloaders    
 
     val_dataloaders = [
         DataLoader(
@@ -216,6 +225,7 @@ if __name__ == "__main__":
         criterion=criteria,
         metric=metrics,
         train_loader=train_dataloaders,
+        train_eval_loader=train_eval_dataloaders,
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
         device=device,
@@ -225,7 +235,7 @@ if __name__ == "__main__":
         train_mode=train_mode,
         weights=[1, 10, 1],
         verbose=False,
-        watcher=CONFIG['watcher']['type'],
+        watcher=watcher,
         skip_train_eval=config_train['skip_train_eval'],
         best_metric=best_metric
     )

@@ -5,7 +5,7 @@ from tqdm import tqdm
 import torch
 from torch import nn
 
-from src.core.train_epoch.train_batch import _batch_forward
+from src.core.train_epoch.train_batch import train_one_batch_multitask
 from src.core.train_epoch.sample_task import sample_task_from_pool
 
 
@@ -31,6 +31,15 @@ def train_epoch_exhaust(
     batches_left = [len(x) for x in train_dataloaders]
     not_exhausted_criterions = [x for x in criterions]
 
+    def pbar_update(pbar, batch, task):
+        if train_mode == 'standard' or task == 'sentiment':
+            batch_size = len(batch['targets'])
+        elif train_mode == 'contrastive':
+            batch_size = len(batch[0]['targets'])
+        elif train_mode == 'triplet_unsupervised':
+            batch_size = len(batch[list(batch.keys())[0]])
+        pbar.update(batch_size)
+
     while sum(batches_left) > 0:
         optimizer.zero_grad()
 
@@ -40,10 +49,10 @@ def train_epoch_exhaust(
             not_exhausted_criterions
         )
 
-        predictions = _batch_forward(batch, model, task, device, criterion, train_mode)
+        train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode)
 
         if verbose:
-            pbar.update(len(batch['targets']))
+            pbar_update(pbar, batch, task)
 
         for _ in range(weights[number_chosen] - 1):
             if batches_left[number_chosen] == 0:
@@ -56,10 +65,10 @@ def train_epoch_exhaust(
                 number_chosen
             )
 
-            predictions = _batch_forward(batch, model, task, device, criterion, train_mode)
+            train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode)
 
             if verbose:
-                pbar.update(len(batch['targets']))
+                pbar_update(pbar, batch, task)
 
         if weights[number_chosen] - 1 > 0:
             for param in model.parameters():

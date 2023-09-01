@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Union
 import torch
 from torch import nn
 
@@ -33,6 +34,21 @@ def _batch_forward_similarity(
     attention_masks_2 = attention_masks_2.to(device)
 
     predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
+    return predictions
+
+# TODO: remove
+def _batch_forward(
+        batch: torch.tensor,
+        model: nn.Module,
+        task: str,
+        device: torch.device,
+):
+    if task == 'sentiment':
+        predictions = _batch_forward_sentiment(batch, device, model)
+    elif task == 'paraphrase_classifier' or task == 'paraphrase_regressor':
+        predictions = _batch_forward_similarity(batch, device, model, task)
+    else:
+        raise NotImplementedError
     return predictions
 
 
@@ -147,27 +163,19 @@ def train_one_batch_triplet(
 
 def train_one_batch_multitask(
         model: nn.Module,
-        batch: torch.tensor,
+        batch: Union[torch.tensor, list[torch.tensor]],
         optimizer: torch.optim.Optimizer,
         criterion: torch.nn.Module,
         device: torch.device,
         task: str,
         train_mode: str
 ):
-    if train_mode == 'contrastive':
+    if train_mode == 'standard' or task == 'sentiment':
+        train_one_batch_standard(batch, criterion, device, model, optimizer, task)
+    elif train_mode == 'contrastive':
         train_one_batch_contrastive(batch, criterion, device, model, optimizer, task)
     elif train_mode == 'triplet':
         forced_criterion = torch.nn.TripletMarginLoss
         train_one_batch_triplet(batch, forced_criterion, device, model, optimizer, task)
     else:
-        train_one_batch_standard(batch, criterion, device, model, optimizer, task)
-
-# TODO: remove
-def _batch_forward(
-        batch: torch.tensor,
-        model: nn.Module,
-        task: str,
-        device: torch.device,
-        criterion: torch.nn.Module
-):
-    raise NotImplementedError("Use train_one_batch_multitask instead of calling _batch_forward directly.")
+        raise NotImplementedError(f"train_mode={train_mode} is not supported")
