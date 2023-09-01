@@ -101,9 +101,9 @@ def train_epoch_continuous(
 
             # squeeze extra data
             for _ in range(weight-1):
-                sample_and_train_batch(number_chosen, False, 1/weight)
+                sample_and_train_batch(number_chosen, False, weight)
         
-            sample_and_train_batch(number_chosen, is_optimizer_step, 1/weight)
+            sample_and_train_batch(number_chosen, is_optimizer_step, weight)
 
             if is_optimizer_step:
                 optimizer_steps +=1

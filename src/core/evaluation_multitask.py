@@ -79,7 +79,7 @@ def evaluate_model_multitask(
 
                 if cosine_loss:
                     predictions, embeddings = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2, True)
-                    losses['cosine_similarity'] += cosine_loss(*embeddings, 2*targets-1)
+                    losses['cosine_similarity'] += cosine_loss(*embeddings, 2*targets-1) / len(targets)
                 else:
                     predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
                 

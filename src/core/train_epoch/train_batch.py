@@ -57,7 +57,7 @@ def train_one_batch_multitask(
     loss = criterion(predictions, targets).sum() / loss_divisor
     if cosine_loss and task == 'paraphrase_classifier':
         # targets should be -1,1
-        loss = loss + cosine_loss(*embeddings, 2*targets-1) / 2 / loss_divisor
+        loss = loss + cosine_loss(*embeddings, 2*targets-1) / len(targets) / 4 / loss_divisor
         
     loss.backward()
 

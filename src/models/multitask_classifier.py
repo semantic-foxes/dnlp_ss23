@@ -52,14 +52,16 @@ class MultitaskBERT(nn.Module):
                                  'either \'pretrain\' or \'finetune\'.')
 
         self.sentiment_classifier = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size, self.num_labels),
+            nn.Linear(hidden_size, hidden_size // 2),
             nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size // 2, self.num_labels),
         )
         self.paraphrase_classifier = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(2*hidden_size, 2),
+            nn.Linear(2*hidden_size, hidden_size),
             nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 2),
         )
         self.paraphrase_regressor_1 = nn.Sequential(
             nn.Dropout(0.1),
