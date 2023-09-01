@@ -36,7 +36,7 @@ def train_epoch_exhaust(
             batch_size = len(batch['targets'])
         elif train_mode == 'contrastive':
             batch_size = len(batch[0]['targets'])
-        elif train_mode == 'triplet_unsupervised':
+        elif train_mode == 'triplet':
             batch_size = len(batch[list(batch.keys())[0]])
         pbar.update(batch_size)
 

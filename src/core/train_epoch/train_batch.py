@@ -175,7 +175,7 @@ def train_one_batch_multitask(
     elif train_mode == 'contrastive':
         train_one_batch_contrastive(batch, criterion, device, model, optimizer, task)
     elif train_mode == 'triplet':
-        forced_criterion = torch.nn.TripletMarginLoss
+        forced_criterion = torch.nn.TripletMarginLoss()
         train_one_batch_triplet(batch, forced_criterion, device, model, optimizer, task)
     else:
         raise NotImplementedError(f"train_mode={train_mode} is not supported")

@@ -45,7 +45,7 @@ if __name__ == "__main__":
     train_mode = config_train.get('train_mode', 'standard')
     if train_mode == 'contrastive':
         exp_factor = config_train.get('exp_factor', 2)
-    if train_mode == 'triplet_unsupervised':
+    if train_mode == 'triplet':
         triplet_dropout_rate = config_train.get('triplet_dropout_rate', 0.1)
 
     if CONFIG['watcher']['type'] == 'wandb':
@@ -151,7 +151,7 @@ if __name__ == "__main__":
             )
             for x in [quora_train_dataset, sts_train_dataset]
         ]
-    elif train_mode == 'triplet_unsupervised':
+    elif train_mode == 'triplet':
         train_dataloaders = [sst_train_dataloader] + [
             DataLoader(
                 x,
@@ -211,8 +211,8 @@ if __name__ == "__main__":
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
 
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
-                f'all the tasks.')
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
+                f' in {train_mode} mode on all the tasks.')
 
     if config_bert['bert_mode'] == 'pretrain':
         train_function = pretrain_validation_loop_multitask
