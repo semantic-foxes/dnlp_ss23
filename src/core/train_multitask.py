@@ -213,24 +213,24 @@ def train_validation_loop_multitask(
         current_epoch_scores = {}
         # Validation on train
         if current_epoch % skip_train_eval == 0:
-            logger.info(f'Training results for epoch {current_epoch}')
             epoch_train_scores = evaluate_model_multitask(
                 model,
                 train_loader,
                 device,
                 metric,
-                criterion
+                criterion,
+                set_name='train'
             )
             current_epoch_scores['train'] = epoch_train_scores
 
         # Validation on val
-        logger.info(f'Validation results for epoch {current_epoch}')
         epoch_val_scores = evaluate_model_multitask(
             model,
             val_loader,
             device,
             metric,
             criterion,
+            set_name='val'
         )
         current_epoch_scores['val'] = epoch_val_scores
 

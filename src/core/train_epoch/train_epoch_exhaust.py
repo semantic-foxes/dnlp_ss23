@@ -66,7 +66,7 @@ def train_epoch_exhaust(
             loss.backward()
 
             if verbose:
-                pbar.update(len(batch['targets']))
+                pbar.update(1)
 
         if weights[number_chosen] - 1 > 0:
             for param in model.parameters():

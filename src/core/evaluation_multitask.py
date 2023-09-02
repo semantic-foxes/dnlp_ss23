@@ -14,7 +14,8 @@ def evaluate_model_multitask(
         device: torch.device,
         metrics: List[Callable],
         criterions: List[torch.nn.Module] = None,
-        verbose: bool = True
+        verbose: bool = True,
+        set_name: str = 'train'
 ) -> dict:
     """
     Evaluates the model using the given dataloader
@@ -54,7 +55,7 @@ def evaluate_model_multitask(
         if verbose:
             pbar = tqdm(
                 dataloader, leave=False,
-                desc=f'Evaluating on {task} ({i+1}/{len(eval_dataloaders)})'
+                desc=f'Evaluating on {set_name} {task} ({i+1}/{len(eval_dataloaders)})'
             )
         else:
             pbar = dataloader
@@ -100,12 +101,12 @@ def evaluate_model_multitask(
         metric[task] = metrics[i](preds_all, targets_all).item()
     
     results = {'metric': metric, 'loss': losses}
-    logger.info(evaluation_message(results))
+    logger.info(f'{set_name} {evaluation_message(results)}')
 
     return results
 
 
-def evaluation_message(result: dict)->str:
+def evaluation_message(result: dict) -> str:
     metric = result['metric']
     loss = result['loss']
 
@@ -119,5 +120,5 @@ def evaluation_message(result: dict)->str:
     return message
 
 
-def sum_comparator(current:dict, best:dict)->bool:
+def sum_comparator(current: dict, best: dict) -> bool:
     return sum(current.values()) > sum(best.values())
