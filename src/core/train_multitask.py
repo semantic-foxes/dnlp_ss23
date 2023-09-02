@@ -59,7 +59,8 @@ def train_one_epoch_multitask(
             device=device,
             verbose=verbose,
             current_epoch=current_epoch,
-            cut_to_min_size=True
+            cut_to_min_size=True,
+            skip_optimizer_step=skip_optimizer_step,
         )
 
     elif dataloader_mode == 'continuous':

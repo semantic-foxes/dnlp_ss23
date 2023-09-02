@@ -17,6 +17,7 @@ def train_epoch_sequential(
         cut_to_min_size: bool = False,
         verbose: bool = True,
         current_epoch: int = None,
+        skip_optimizer_step: int = 1,
 ):
     """
     Train using each of the dataloaders consequently with no random involved.
@@ -63,8 +64,13 @@ def train_epoch_sequential(
         batches_used = 0
 
         for batch in dataloader:
-            train_one_batch_multitask(model, batch, optimizer, criterion, device, task)
             batches_used += 1
+            is_optimizer_step = batches_used % skip_optimizer_step == 0
+            train_one_batch_multitask(
+                model, batch, optimizer, criterion, device, task, 
+                is_optimizer_step=is_optimizer_step,
+                loss_divisor=skip_optimizer_step,
+            )
 
             if verbose:
                 pbar.update(len(batch))
@@ -72,4 +78,6 @@ def train_epoch_sequential(
             if cut_to_min_size and batches_used >= cutoff:
                 break
 
+    if verbose:
+        pbar.close()
 
