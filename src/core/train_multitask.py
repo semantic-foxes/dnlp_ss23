@@ -166,10 +166,7 @@ def train_validation_loop_multitask(
         raise AttributeError(message)
 
     # Progress bar handling
-    if verbose:
-        pbar = tqdm(range(n_epochs))
-    else:
-        pbar = range(n_epochs)
+    pbar = range(n_epochs)
 
     # Watcher handling
     if watcher == 'wandb':
@@ -199,7 +196,7 @@ def train_validation_loop_multitask(
             optimizer,
             criterion,
             device,
-            verbose=True,
+            verbose=verbose,
             current_epoch=current_epoch,
             weights=weights,
             dataloader_mode=dataloader_mode,
@@ -222,6 +219,7 @@ def train_validation_loop_multitask(
                 criterion,
                 cosine_loss,
                 overall_config,
+                verbose,
             )
             current_epoch_scores['train'] = epoch_train_scores
 
@@ -235,6 +233,7 @@ def train_validation_loop_multitask(
             criterion,
             cosine_loss,
             overall_config,
+            verbose,
         )
         current_epoch_scores['val'] = epoch_val_scores
 

@@ -22,6 +22,7 @@ def get_args():
     parser.add_argument("--config", type=str, default='config.yaml')
     parser.add_argument("--restore", action='store_true')
     parser.add_argument("--id", type=str, default='')
+    parser.add_argument("--silent", action='store_false')
 
     args = parser.parse_args()
     return args
@@ -189,9 +190,6 @@ if __name__ == "__main__":
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
 
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
-                f'all the tasks.')
-
     default_args = {
         'model': model,
         'optimizer': optimizer,
@@ -205,15 +203,17 @@ if __name__ == "__main__":
         'overall_config': CONFIG,
         'dataloader_mode': config_train['dataloader_mode'],
         'weights': weights,
-        'verbose': False,
+        'verbose': args.silent,
         'watcher': CONFIG['watcher']['type'],
         'skip_train_eval': config_train['skip_train_eval'],
         'best_metric': best_metric,
         'skip_optimizer_step': skip_optimizer_step,
         'cosine_loss': cosine_loss,
     }
+    # Pre train
     config_pre_train = CONFIG.get('pre_train', {})
     if config_pre_train:
+        logger.info(f'Starting PRE train on all the tasks.')
         model.freeze_bert(True)
         optimizer_pre = AdamW(model.parameters(), lr=config_pre_train['lr'])
         _, best_metric = train_validation_loop_multitask(
@@ -229,11 +229,18 @@ if __name__ == "__main__":
             }
         )
 
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
+                f'all the tasks.')
+
+    load_state(model, device, config_train['checkpoint_path'])
     model.freeze_bert(False)
     _, best_metric = train_validation_loop_multitask(**default_args)
 
+    # Post train
+    load_state(model, device, config_train['checkpoint_path'])
     config_post_train = CONFIG.get('post_train', {})
     if config_post_train:
+        logger.info(f'Starting POST train on all the tasks.')
         model.freeze_bert(True)
         optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
         _, best_metric = train_validation_loop_multitask(
@@ -254,6 +261,6 @@ if __name__ == "__main__":
     logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
     
-    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss, CONFIG)
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss, CONFIG, args.silent)
     
     generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values(), CONFIG)
