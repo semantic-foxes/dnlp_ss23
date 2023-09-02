@@ -186,12 +186,14 @@ def train_one_batch_triplet(
     predictions_positive = _batch_forward_similarity(
         batch_positive, device, model, task)
     positive_loss = criterion(
-        predictions_positive, torch.ones(batch_size, dtype=dtype)).sum()
+        predictions_positive,
+        torch.ones(batch_size, device=device, dtype=dtype)).sum()
 
     predictions_negative = _batch_forward_similarity(
         batch_negative, device, model, task)
     negative_loss = criterion(
-        predictions_negative, torch.zeros(batch_size, dtype=dtype)).sum()
+        predictions_negative,
+        torch.zeros(batch_size, device=device, dtype=dtype)).sum()
 
     embeddings = _batch_forward_triplet(batch, device, model)
     triplet_criterion = torch.nn.TripletMarginLoss()
