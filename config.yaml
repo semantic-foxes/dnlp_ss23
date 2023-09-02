@@ -21,7 +21,7 @@ data:
     test_path: 'data/sts-test-student.csv'
 
   dataloader:
-    batch_size: 32
+    batch_size: 64
     num_workers: 1
 
 bert_model:
@@ -38,6 +38,11 @@ train:
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'contrastive' # 'standard' or 'contrastive' or 'triplet'
+  exp_factor: 2
+  contrastive_weight: 0.5
+  triplet_dropout_rates:
+      sts: 0.2
+      quora: 0.05
   skip_train_eval: 1 # number of times to skip evaluation of train datasets
 #  max_train_size: 64 # null - reads the whole dataset, ~6050 - min
 #  max_eval_size: 64
