@@ -2,7 +2,7 @@ seed: 11711
 use_cuda: True
 
 watcher:
-  type: null # null for no watcher
+  type: 'wandb' # null for no watcher
   project_name: 'semantic_foxes_bert'
   mode: 'offline' # "online", "offline" or "disabled"
 
@@ -46,20 +46,21 @@ train:
   freeze_bert_steps: 1 # -- only for 'continuous
   is_multi_batch: True # -- only for 'continuous
 
-pre_train:
-  n_epochs: 1
-  lr: 0.001
-  dataloader_mode: 'sequential'
-  skip_optimizer_step: 2
+# pre_train:
+#   n_epochs: 1
+#   lr: 0.001
+#   dataloader_mode: 'sequential'
+#   skip_optimizer_step: 2
 
-post_train:
-  n_epochs: 6
-  lr: 0.0001
-  dataloader_mode: 'sequential'
-  skip_optimizer_step: 2
+# post_train:
+#   n_epochs: 6
+#   lr: 0.0001
+#   dataloader_mode: 'sequential'
+#   skip_optimizer_step: 2
 
 
 predict:
   sst_prediction_path: 'predictions/sst_prediction.csv'
   quora_prediction_path: 'predictions/quora_prediction.csv'
   sts_prediction_path: 'predictions/sts_prediction.csv'
+
