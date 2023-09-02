@@ -23,7 +23,7 @@ def train_one_epoch_multitask(
         verbose: bool = True,
         current_epoch: int = None,
         prev_state: List[Iterable] = None,
-        weights: List[int] = [1, 10, 1],
+        weights: List[int] = [1, 1, 1],
         skip_optimizer_step: int = 1,
         cosine_loss = None,
         overall_config = {},
@@ -93,7 +93,7 @@ def train_one_epoch_multitask(
         message = f'{dataloader_mode} is not a known data combine strategy.'
         logger.error(message)
         raise NotImplementedError(message)
-    
+
 
 def train_validation_loop_multitask(
         model: torch.nn.Module,
@@ -105,6 +105,8 @@ def train_validation_loop_multitask(
         val_loader: List[torch.utils.data.DataLoader],
         n_epochs: int,
         device: torch.device,
+        unfreezer=None,
+        scheduler: torch.optim.lr_scheduler._LRScheduler = None,
         weights: List[int] = [1, 1, 1],
         watcher: Union[str, None] = None,
         verbose: bool = True,
@@ -125,6 +127,8 @@ def train_validation_loop_multitask(
 
     Parameters
     ----------
+    scheduler
+    unfreezer
     model : torch.nn.Module
         The model to train.
     optimizer : torch.optim.Optimizer
@@ -189,6 +193,8 @@ def train_validation_loop_multitask(
         logger.error(message)
         raise NotImplementedError(message)
 
+    unfreezer.start()
+
     # Initialization
     best_metric = {
         'sentiment': 0,
@@ -221,10 +227,14 @@ def train_validation_loop_multitask(
         )
         logger.info(f'Finished training epoch {current_epoch}')
 
+        if scheduler is not None:
+            scheduler.step()
+        if unfreezer is not None:
+            unfreezer.step()
+
         current_epoch_scores = {}
         # Validation on train
         if current_epoch % skip_train_eval == 0:
-            logger.info(f'Training results for epoch {current_epoch}')
             epoch_train_scores = evaluate_model_multitask(
                 model,
                 train_eval_loader,
@@ -234,11 +244,11 @@ def train_validation_loop_multitask(
                 cosine_loss,
                 overall_config,
                 verbose,
+                set_name='train'
             )
             current_epoch_scores['train'] = epoch_train_scores
 
         # Validation on val
-        logger.info(f'Validation results for epoch {current_epoch}')
         epoch_val_scores = evaluate_model_multitask(
             model,
             val_loader,
@@ -248,6 +258,7 @@ def train_validation_loop_multitask(
             cosine_loss,
             overall_config,
             verbose,
+            set_name='val'
         )
         current_epoch_scores['val'] = epoch_val_scores
 

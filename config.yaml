@@ -43,7 +43,7 @@ train:
   triplet_dropout_rates:
       sts: 0.2
       quora: 0.1
-  skip_train_eval: 1 # number of times to skip evaluation of train datasets
+  skip_train_eval: 2 # number of times to skip evaluation of train datasets
   max_train_size: null # null - reads the whole dataset, ~6050 - min 
 #  max_eval_size: 24
   skip_optimizer_step: 3 # do optimizer.step() every n-th time -- only for 'continuous'

@@ -43,14 +43,14 @@ class MultitaskBERT(nn.Module):
         )
 
         # Pretrain mode does not require updating bert parameters.
-        # if bert_mode == 'pretrain':
-        #     self.requires_grad_(False)
-        # elif bert_mode == 'finetune':
-        #     self.requires_grad_(True)
-        # else:
-        #     raise AttributeError('Incorrect mode for BERT model. Should be'
-        #                          'either \'pretrain\' or \'finetune\'.')
-        self.requires_grad_(False)
+        if bert_mode == 'pretrain':
+            self.requires_grad_(False)
+        elif bert_mode == 'finetune':
+            self.requires_grad_(True)
+        else:
+            raise AttributeError('Incorrect mode for BERT model. Should be'
+                                 'either \'pretrain\' or \'finetune\'.')
+
 
         self.sentiment_classifier = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
@@ -59,19 +59,20 @@ class MultitaskBERT(nn.Module):
             nn.Linear(hidden_size // 2, self.num_labels),
         )
         self.paraphrase_classifier = nn.Sequential(
-            nn.Linear(2*hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size, 2),
+            nn.Linear(2*hidden_size, 2)
         )
         self.paraphrase_regressor_1 = nn.Sequential(
-            nn.Dropout(0.1),
             nn.Linear(hidden_size, hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size // 2, hidden_size // 4),
             nn.ReLU(),
         )
         self.paraphrase_regressor_2 = nn.Sequential(
-            nn.Dropout(0.1),
             nn.Linear(hidden_size, hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size // 2, hidden_size // 4),
             nn.ReLU(),
         )
         self.paraphrase_decision = nn.CosineSimilarity()
@@ -141,11 +142,3 @@ class MultitaskBERT(nn.Module):
         result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 2.5 + 2.5
         return result.flatten()
 
-    def freeze_bert(self, freeze: bool, unfreeze_depth: int = 0):
-        layers = [self.bert.pooler_dense, *self.bert.bert_layers[::-1]]
-        for i, layer in enumerate(layers):
-            if freeze:
-                layer.requires_grad_(False)
-            else:
-                layer.requires_grad_(i < unfreeze_depth)
-            

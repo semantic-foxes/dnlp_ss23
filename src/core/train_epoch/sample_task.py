@@ -31,6 +31,6 @@ def sample_task_from_pool(
     batches_left[number_chosen] -= 1
 
     if batches_left[number_chosen] == 0:
-        logger.debug(f'Dataloader number {task} is exhausted.')
+        logger.debug(f'Dataloader for {task} is exhausted.')
 
     return batch, criterion, task, number_chosen

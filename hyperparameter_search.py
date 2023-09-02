@@ -13,10 +13,10 @@ from src.optim import AdamW
 from src.models import MultitaskBERT
 from src.metrics import accuracy, pearson_correlation
 from src.datasets import SSTDataset, SentenceSimilarityDataset
-from src.core import train_loop_multitask, evaluate_model_multitask
+from src.core import train_one_epoch_multitask, evaluate_model_multitask
 from src.utils import (logger, generate_device,
                        parse_hyperparameters_dict, seed_everything,
-                       generate_optuna_report)
+                       optuna_save_callback)
 
 
 def main():
@@ -104,14 +104,13 @@ def main():
         raise e
     logger.debug(f'Hyperparameter config successfully loaded from {hyperparameter_config_path}.')
 
-
     def objective(trial: optuna.Trial):
         # Changing all the model hyperparameters
-        new_model_config = COMMON_CONFIG['bert_model']
+        new_model_config = COMMON_CONFIG['bert_model'].copy()
         model_hyperparameters = parse_hyperparameters_dict(trial, model_config)
         for key, value in model_hyperparameters.items():
             new_model_config[key] = value
-
+        new_model_config.pop('weights_path')
         model = MultitaskBERT(
             num_labels=5,
             **new_model_config
@@ -119,39 +118,42 @@ def main():
         model = model.to(device)
 
         # Changing all the train hyperparameters
-        new_train_config = COMMON_CONFIG['train']
+        new_train_config = COMMON_CONFIG['train'].copy()
         train_hyperparameters = parse_hyperparameters_dict(trial, train_config)
         for key, value in train_hyperparameters.items():
             new_train_config[key] = value
 
-        n_epochs = new_train_config.pop('n_epochs')
-        _ = new_train_config.pop('checkpoint_path')
-        optimizer = AdamW(model.parameters(), **new_train_config)
+        optimizer = AdamW(model.parameters(), lr=new_train_config['lr'])
 
-        train_loop_multitask(
-            model=model,
-            optimizer=optimizer,
-            criterion=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
-            train_loader=train_dataloaders,
-            n_epochs=n_epochs,
-            device=device,
-            verbose=False,
-        )
+        epoch_train_state = None
+        for i in range(new_train_config['n_epochs']):
+            epoch_train_state = train_one_epoch_multitask(
+                model,
+                train_dataloaders,
+                optimizer,
+                criterions=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
+                device=device,
+                dataloader_mode=new_train_config['dataloader_mode'],
+                verbose=True,
+                current_epoch=i,
+                weights=[1, 10, 1],
+                prev_state=epoch_train_state,
+            )
+            logger.info(f'Finished training epoch {i}')
 
-        val_scores = evaluate_model_multitask(
+        val_metrics = evaluate_model_multitask(
             model,
             val_dataloaders,
             device,
             [accuracy, accuracy, pearson_correlation],
-            evaluation_set_name='val'
-        )
+        )['metric']
 
-        for key, value in val_scores.items():
+        for key, value in val_metrics.items():
             trial.set_user_attr(key, value)
 
-        trial_result = (val_scores['sentiment val metric']
-                        + val_scores['paraphrase_classifier val metric']
-                        + (val_scores['paraphrase_regressor val metric'] + 1) / 2)
+        trial_result = (val_metrics['sentiment']
+                        + val_metrics['paraphrase_classifier']
+                        + (val_metrics['paraphrase_regressor'] + 1) / 2)
 
         logger.info(f'Trial ended with resulting metric {trial_result}')
 
@@ -159,23 +161,16 @@ def main():
 
     sampler = TPESampler(seed=42)
     study = optuna.create_study(direction='maximize', sampler=sampler)
+
     study.optimize(
         objective,
         n_trials=HYPERPARAMETER_CONFIG['n_trials'],
-        show_progress_bar=False
+        show_progress_bar=False,
+        callbacks=[optuna_save_callback, ]
     )
 
-    report = generate_optuna_report(
-        study,
-        [
-            'sentiment val metric',
-            'paraphrase_classifier val metric',
-            'paraphrase_regressor val metric'
-        ]
-    )
-
-    logger.info(f'All trials finished, best result is {study.best_trial}')
-    logger.info(report)
+    logger.info(f'All trials finished, best result is {study.best_trial.user_attrs}\n'
+                f'achieved with {study.best_trial.params}')
 
 
 if __name__ == '__main__':

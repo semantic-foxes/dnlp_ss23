@@ -1,6 +1,5 @@
 import argparse
 import yaml
-import pandas as pd
 import wandb
 
 from torch.utils.data import DataLoader
@@ -15,7 +14,8 @@ from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions_multitask
 from src.metrics import accuracy, pearson_correlation
-from src.utils.model_utils import load_state, save_results
+from src.utils.model_utils import load_state
+from src.core.unfreezer import BasicGradualUnfreezer
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -41,8 +41,7 @@ if __name__ == "__main__":
     config_bert = CONFIG['bert_model']
     config_train = CONFIG['train']
 
-    skip_optimizer_step = config_train.get('skip_optimizer_step')
-    skip_optimizer_step = 1 if skip_optimizer_step is None else skip_optimizer_step
+    skip_optimizer_step = config_train.get('skip_optimizer_step', 1)
 
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
@@ -236,6 +235,7 @@ if __name__ == "__main__":
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
+    unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
 
     default_args = {
         'model': model,
@@ -248,6 +248,7 @@ if __name__ == "__main__":
         'device': device,
         'save_best_path': config_train['checkpoint_path'],
         'overall_config': CONFIG,
+        'unfreezer': unfreezer,
         'dataloader_mode': config_train['dataloader_mode'],
         'weights': weights,
         'verbose': args.silent,
@@ -309,6 +310,6 @@ if __name__ == "__main__":
     logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
     
-    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss, CONFIG, args.silent)
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss=cosine_loss, overall_config=CONFIG, verbose=args.silent)
     
-    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values(), CONFIG)
+    generate_predictions_multitask(model, device, test_dataloaders, filepaths=config_prediction.values(), overall_config=CONFIG)

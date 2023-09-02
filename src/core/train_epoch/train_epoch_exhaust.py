@@ -24,7 +24,7 @@ def train_epoch_exhaust(
     model.train()
 
     if verbose:
-        total_len = sum([len(x.dataset) for x in train_dataloaders])
+        total_len = sum([len(x) for x in train_dataloaders])
         pbar = tqdm(total=total_len, leave=False,
                     desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks')
 
@@ -32,14 +32,6 @@ def train_epoch_exhaust(
     batches_left = [len(x) for x in train_dataloaders]
     not_exhausted_criterions = [x for x in criterions]
 
-    def pbar_update(pbar, batch, task):
-        if train_mode == 'standard' or task == 'sentiment':
-            batch_size = len(batch['targets'])
-        elif train_mode == 'contrastive':
-            batch_size = len(batch[0]['targets'])
-        elif train_mode == 'triplet':
-            batch_size = len(batch[list(batch.keys())[0]])
-        pbar.update(batch_size)
 
     while sum(batches_left) > 0:
         optimizer.zero_grad()
@@ -53,7 +45,7 @@ def train_epoch_exhaust(
         train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode, overall_config, is_optimizer_step=False)
 
         if verbose:
-            pbar_update(pbar, batch, task)
+            pbar.update(1)
 
         for _ in range(weights[number_chosen] - 1):
             if batches_left[number_chosen] == 0:
@@ -69,7 +61,7 @@ def train_epoch_exhaust(
             train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode, overall_config, is_optimizer_step=False)
 
             if verbose:
-                pbar_update(pbar, batch, task)
+                pbar.update(1)
 
         if weights[number_chosen] - 1 > 0:
             for param in model.parameters():

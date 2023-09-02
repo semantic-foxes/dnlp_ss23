@@ -159,3 +159,18 @@ def generate_optuna_report(
         result.append(row)
 
     return pd.DataFrame(result)
+
+
+def optuna_save_callback(
+        study: optuna.Study,
+        frozen_trial: optuna.trial.FrozenTrial,
+        user_attrs: list = ['sentiment', 'paraphrase_classifier', 'paraphrase_regressor'],
+        save_path: str = 'result.csv'
+):
+    report = generate_optuna_report(
+        study,
+        user_attrs
+    )
+    report.to_csv(save_path)
+
+
