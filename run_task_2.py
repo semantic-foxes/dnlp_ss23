@@ -191,32 +191,59 @@ if __name__ == "__main__":
 
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
+    
+    default_args  = {
+        'model': model,
+        'optimizer': optimizer,
+        'criterion': criteria,
+        'metric': metrics,
+        'train_loader': train_dataloaders,
+        'val_loader': val_dataloaders,
+        'n_epochs': config_train['n_epochs'],
+        'device': device,
+        'save_best_path': config_train['checkpoint_path'],
+        'overall_config': CONFIG,
+        'dataloader_mode': config_train['dataloader_mode'],
+        'weights': weights,
+        'verbose': False,
+        'watcher': CONFIG['watcher']['type'],
+        'skip_train_eval': config_train['skip_train_eval'],
+        'best_metric': best_metric,
+        'skip_optimizer_step': skip_optimizer_step,
+        'cosine_loss': cosine_loss,
+    }
+    config_pre_train = config_bert.get('pre_train',{})
+    if config_pre_train:
+        model.freeze_bert(True)
+        optimizer_pre = AdamW(model.parameters(), lr=config_pre_train['lr'])
+        _, best_metric = train_validation_loop_multitask(
+            **default_args,
+            optimizer=optimizer_pre, 
+            n_epochs=config_pre_train['n_epochs'],
+            dataloader_mode=config_pre_train['dataloader_mode'],
+            weights=[1, 1, 1],
+            best_metric=best_metric,
+            skip_optimizer_step=config_pre_train.get('skip_optimizer_step', 1),
+            cosine_loss=None,
+        )
 
-    if config_bert['bert_mode'] == 'pretrain':
-        train_function = pretrain_validation_loop_multitask
-    else:
-        train_function = train_validation_loop_multitask
+    model.freeze_bert(False)
+    _, best_metric = train_validation_loop_multitask(**default_args)
 
-    train_function(
-        model=model,
-        optimizer=optimizer,
-        criterion=criteria,
-        metric=metrics,
-        train_loader=train_dataloaders,
-        val_loader=val_dataloaders,
-        n_epochs=config_train['n_epochs'],
-        device=device,
-        save_best_path=config_train['checkpoint_path'],
-        overall_config=CONFIG,
-        dataloader_mode=config_train['dataloader_mode'],
-        weights=weights,
-        verbose=False,
-        watcher=CONFIG['watcher']['type'],
-        skip_train_eval=config_train['skip_train_eval'],
-        best_metric=best_metric,
-        skip_optimizer_step=skip_optimizer_step,
-        cosine_loss=cosine_loss,
-    )
+    config_post_train = config_bert.get('post_train',{})
+    if config_post_train:
+        model.freeze_bert(True)
+        optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
+        _, best_metric = train_validation_loop_multitask(
+            **default_args,
+            optimizer=optimizer_post, 
+            n_epochs=config_post_train['n_epochs'],
+            dataloader_mode=config_post_train['dataloader_mode'],
+            weights=[1, 1, 1],
+            best_metric=best_metric,
+            skip_optimizer_step=config_post_train.get('skip_optimizer_step', 1),
+            cosine_loss=None,
+        )
 
     load_state(model, device, config_train['checkpoint_path'])
 

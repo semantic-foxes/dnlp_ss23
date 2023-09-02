@@ -6,7 +6,7 @@ from src.core.train_multitask import train_validation_loop_multitask
 from src.utils.model_utils import load_state
 from src.utils import logger
 
-
+# Deprecated
 def pretrain_validation_loop_multitask(
         model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
@@ -30,6 +30,7 @@ def pretrain_validation_loop_multitask(
         cosine_loss = None,
 ):
     """
+    (Deprecated)
     Run the train loop with selecting parameters while validating the model
     after each epoch.
     """
