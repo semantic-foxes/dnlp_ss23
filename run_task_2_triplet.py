@@ -42,14 +42,19 @@ if __name__ == "__main__":
     device = generate_device(CONFIG['use_cuda'])
 
     # TODO: keep default values separately
-    train_mode = config_train.get('train_mode', 'standard')
-    if train_mode == 'contrastive':
-        exp_factor = config_train.get('exp_factor', 2)
-    elif train_mode == 'triplet':
-        triplet_dropout_rates = config_train.get(
-            'triplet_dropout_rates', {})
-        dropout_sts = triplet_dropout_rates.get('sts', 0.2)
-        dropout_quora =triplet_dropout_rates.get('quora', 0.05)
+    train_mode = 'triplet'
+    exp_factor = config_train.get('exp_factor', 2)
+    triplet_dropout_rates = config_train.get('triplet_dropout_rates', {})
+    dropout_sts = triplet_dropout_rates.get('sts', 0.2)
+    dropout_quora = triplet_dropout_rates.get('quora', 0.1)
+    
+    triplet_training_scheme = config_train.get(
+        'triplet_training_scheme',
+        {'pretrain_epochs': 3,
+         'finetune_epochs': 3,
+         'repeat': 2
+        }
+    )
 
     if CONFIG['watcher']['type'] == 'wandb':
         wandb.init(
@@ -130,7 +135,7 @@ if __name__ == "__main__":
         num_workers=config_dataloader['num_workers'],
     )
     
-    train_eval_dataloaders = [sst_train_dataloader] + [
+    train_dataloaders = [sst_train_dataloader] + [
         DataLoader(
             x,
             shuffle=True,
@@ -141,34 +146,30 @@ if __name__ == "__main__":
         )
         for x in [quora_train_dataset, sts_train_dataset]
     ]
-
-    if train_mode == 'contrastive':
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn_contrastive(exp_factor),
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x in [quora_train_dataset, sts_train_dataset]
-        ]
-    elif train_mode == 'triplet':
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn_triplet_unsupervised(rate),
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x, rate in [(quora_train_dataset, dropout_quora), (sts_train_dataset, dropout_sts)]
-        ]
-    else:
-        train_dataloaders = train_eval_dataloaders    
-
+    train_dataloaders_contrastive = [sst_train_dataloader] + [
+        DataLoader(
+            x,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=x.collate_fn_contrastive(exp_factor),
+            batch_size=config_dataloader['batch_size'],
+            num_workers=config_dataloader['num_workers'],
+        )
+        for x in [quora_train_dataset, sts_train_dataset]
+    ]
+    train_dataloaders_triplet = [sst_train_dataloader] + [
+        DataLoader(
+            x,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=x.collate_fn_triplet_unsupervised(rate),
+            batch_size=config_dataloader['batch_size'],
+            num_workers=config_dataloader['num_workers'],
+        )
+        for x, rate in [(quora_train_dataset, dropout_quora),
+                        (sts_train_dataset, dropout_sts)]
+    ]
+    
     val_dataloaders = [
         DataLoader(
             x,
@@ -221,27 +222,49 @@ if __name__ == "__main__":
         train_function = pretrain_validation_loop_multitask
     else:
         train_function = train_validation_loop_multitask
-
-    train_function(
-        model=model,
-        optimizer=optimizer,
-        criterion=criteria,
-        metric=metrics,
-        train_loader=train_dataloaders,
-        train_eval_loader=train_eval_dataloaders,
-        val_loader=val_dataloaders,
-        n_epochs=config_train['n_epochs'],
-        device=device,
-        save_best_path=config_train['checkpoint_path'],
-        overall_config=CONFIG,
-        dataloader_mode=config_train['dataloader_mode'],
-        train_mode=train_mode,
-        weights=[1, 10, 1],
-        verbose=False,
-        watcher=watcher,
-        skip_train_eval=config_train['skip_train_eval'],
-        best_metric=best_metric
-    )
+    
+    for r in range(triplet_training_scheme['repeat']):
+        train_validation_loop_multitask(
+            model=model,
+            optimizer=optimizer,
+            criterion=criteria,
+            metric=metrics,
+            train_loader=train_dataloaders_triplet,
+            train_eval_loader=train_dataloaders,
+            val_loader=val_dataloaders,
+            n_epochs=triplet_training_scheme['pretrain_epochs'],
+            device=device,
+            save_best_path=config_train['checkpoint_path'],
+            overall_config=CONFIG,
+            dataloader_mode=config_train['dataloader_mode'],
+            train_mode='triplet',
+            weights=[1, 10, 1],
+            verbose=False,
+            watcher=watcher,
+            skip_train_eval=config_train['skip_train_eval'],
+            best_metric=best_metric
+        )
+        pretrain_validation_loop_multitask(
+            model=model,
+            optimizer=optimizer,
+            criterion=criteria,
+            metric=metrics,
+            train_loader=train_dataloaders_contrastive,
+            train_eval_loader=train_dataloaders,
+            val_loader=val_dataloaders,
+            n_epochs=triplet_training_scheme['finetune_epochs'],
+            device=device,
+            save_best_path=config_train['checkpoint_path'],
+            overall_config=CONFIG,
+            dataloader_mode=config_train['dataloader_mode'],
+            train_mode='contrastive',
+            weights=[1, 10, 1],
+            verbose=False,
+            watcher=watcher,
+            skip_train_eval=config_train['skip_train_eval'],
+            best_metric=best_metric
+        )
+            
 
     load_state(model, device, config_train['checkpoint_path'])
 

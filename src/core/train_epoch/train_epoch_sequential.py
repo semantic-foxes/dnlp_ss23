@@ -15,6 +15,7 @@ def train_epoch_sequential(
         criterions: List[torch.nn.Module],
         device: torch.device,
         train_mode: str,
+        overall_config: dict = None,
         cut_to_min_size: bool = False,
         verbose: bool = True,
         current_epoch: int = None,
@@ -62,7 +63,7 @@ def train_epoch_sequential(
         batches_used = 0
 
         for batch in dataloader:
-            train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode)
+            train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode, overall_config)
             batches_used += 1
 
             if verbose:

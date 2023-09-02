@@ -24,6 +24,7 @@ def train_one_epoch_multitask(
         current_epoch: int = None,
         prev_state: List[Iterable] = None,
         weights: List[int] = [1, 1, 1],
+        overall_config: dict = None
 ):
     if dataloader_mode == 'exhaust':
         train_epoch_exhaust(
@@ -33,6 +34,7 @@ def train_one_epoch_multitask(
             criterions=criterions,
             device=device,
             train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
             weights=weights
@@ -46,6 +48,7 @@ def train_one_epoch_multitask(
             criterions=criterions,
             device=device,
             train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
         )
@@ -58,6 +61,7 @@ def train_one_epoch_multitask(
             criterions=criterions,
             device=device,
             train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
             cut_to_min_size=True
@@ -71,6 +75,7 @@ def train_one_epoch_multitask(
             criterions=criterions,
             device=device,
             train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
             prev_data_iters=prev_state
@@ -201,7 +206,8 @@ def train_validation_loop_multitask(
             weights=weights,
             dataloader_mode=dataloader_mode,
             train_mode=train_mode,
-            prev_state=epoch_train_state
+            prev_state=epoch_train_state,
+            overall_config=overall_config
         )
         logger.info(f'Finished training epoch {current_epoch}')
 

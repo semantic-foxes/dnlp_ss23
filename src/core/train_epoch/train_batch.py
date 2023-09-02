@@ -171,14 +171,19 @@ def train_one_batch_multitask(
         criterion: torch.nn.Module,
         device: torch.device,
         task: str,
-        train_mode: str
+        train_mode: str,
+        overall_config: dict = None
 ):
     if train_mode == 'standard' or task == 'sentiment':
-        train_one_batch_standard(batch, criterion, device, model, optimizer, task)
+        train_one_batch_standard(batch, criterion, device, model,
+                                 optimizer, task)
     elif train_mode == 'contrastive':
-        train_one_batch_contrastive(batch, criterion, device, model, optimizer, task)
+        weight = overall_config['train'].get('contrastive_weight', 0.5)
+        train_one_batch_contrastive(batch, criterion, device, model,
+                                    optimizer, task, weight=weight)
     elif train_mode == 'triplet':
         forced_criterion = torch.nn.TripletMarginLoss()
-        train_one_batch_triplet(batch, forced_criterion, device, model, optimizer, task)
+        train_one_batch_triplet(batch, forced_criterion, device, model,
+                                optimizer, task)
     else:
         raise NotImplementedError(f"train_mode={train_mode} is not supported")
