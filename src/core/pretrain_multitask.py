@@ -6,7 +6,6 @@ from src.core.train_multitask import train_validation_loop_multitask
 from src.utils.model_utils import load_state
 from src.utils import logger
 
-# Deprecated
 def pretrain_validation_loop_multitask(
         model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
@@ -30,38 +29,37 @@ def pretrain_validation_loop_multitask(
         cosine_loss = None,
 ):
     """
-    (Deprecated)
     Run the train loop with selecting parameters while validating the model
     after each epoch.
     """
     best_metric = {**best_metric}
+    for _ in range(n_epochs):
+        for i in range(len(metric)):
+            try:
+                load_state(model, device, save_best_path)
+            except:
+                logger.info(f'failed to load model from {save_best_path}')
 
-    for i in range(len(metric)):
-        try:
-            load_state(model, device, save_best_path)
-        except:
-            logger.info(f'failed to load model from {save_best_path}')
-
-        result, best_metric = train_validation_loop_multitask(
-            model=model,
-            optimizer=optimizer,
-            criterion=[criterion[i]],
-            metric=[metric[i]],
-            train_loader=[train_loader[i]],
-            val_loader=[val_loader[i]],
-            n_epochs=n_epochs,
-            device=device,
-            weights=weights,
-            watcher=watcher,
-            save_best_path=save_best_path,
-            overall_config=overall_config,
-            dataloader_mode=dataloader_mode,
-            metric_comparator=metric_comparator,
-            verbose=verbose,
-            skip_train_eval=skip_train_eval,
-            best_metric=best_metric,
-            prior_scores=prior_scores,
-            skip_optimizer_step=skip_optimizer_step,
-            cosine_loss=cosine_loss,
-        )
+            result, best_metric = train_validation_loop_multitask(
+                model=model,
+                optimizer=optimizer,
+                criterion=[criterion[i]],
+                metric=[metric[i]],
+                train_loader=[train_loader[i]],
+                val_loader=[val_loader[i]],
+                n_epochs=1,
+                device=device,
+                weights=weights,
+                watcher=watcher,
+                save_best_path=save_best_path,
+                overall_config=overall_config,
+                dataloader_mode=dataloader_mode,
+                metric_comparator=metric_comparator,
+                verbose=verbose,
+                skip_train_eval=skip_train_eval,
+                best_metric=best_metric,
+                prior_scores=prior_scores,
+                skip_optimizer_step=skip_optimizer_step,
+                cosine_loss=cosine_loss,
+            )
     return result, best_metric
