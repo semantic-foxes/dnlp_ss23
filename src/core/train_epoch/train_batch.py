@@ -124,8 +124,6 @@ def train_one_batch_contrastive(
     
     return loss
 
-
-
 def train_one_batch_triplet(
         batch: torch.tensor,
         criterion: torch.nn.Module,
@@ -182,7 +180,6 @@ def train_one_batch_triplet(
             + 0.5 * (1 - weight) * negative_loss)
     return loss
 
-
 def train_one_batch_multitask(
         model: nn.Module,
         batch: Union[torch.tensor, list[torch.tensor]],
@@ -196,7 +193,7 @@ def train_one_batch_multitask(
         loss_divisor: int = 1,
         cosine_loss = None,
 ):
-    if train_mode == 'standard' or task == 'sentiment':
+    if train_mode == 'standard' or task == 'sentiment' or task == 'paraphrase_regressor':
         loss = train_one_batch_standard(batch, criterion, device, model, task, cosine_loss=cosine_loss)
     elif train_mode == 'contrastive':
         weight = overall_config['train'].get('contrastive_weight', 0.5)
