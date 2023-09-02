@@ -220,7 +220,7 @@ if __name__ == "__main__":
             **{
                 **default_args,
                 'optimizer': optimizer_pre,
-                'n_epochs': config_pre_train['n_epochs'],
+                'n_epochs': 1,
                 'dataloader_mode': config_pre_train['dataloader_mode'],
                 'weights': [1, 1, 1],
                 'best_metric': best_metric,
@@ -228,13 +228,13 @@ if __name__ == "__main__":
                 'cosine_loss': None,
             }
         )
+        load_state(model, device, config_train['checkpoint_path'])
 
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
 
-    load_state(model, device, config_train['checkpoint_path'])
     model.freeze_bert(False)
-    _, best_metric = train_validation_loop_multitask(**default_args)
+    _, best_metric = train_validation_loop_multitask(**{**default_args, 'best_metric': best_metric})
 
     # Post train
     load_state(model, device, config_train['checkpoint_path'])
