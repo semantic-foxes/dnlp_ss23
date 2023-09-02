@@ -73,7 +73,7 @@ def train_epoch_sequential(
             )
 
             if verbose:
-                pbar.update(len(batch))
+                pbar.update(1)
 
             if cut_to_min_size and batches_used >= cutoff:
                 break
