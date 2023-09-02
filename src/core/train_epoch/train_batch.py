@@ -156,9 +156,48 @@ def train_one_batch_triplet(
 ):
     optimizer.zero_grad()
 
+    label_map = {
+        'token_ids_anchor': 'token_ids_1',
+        'attention_masks_anchor': 'attention_masks_1',
+        'token_type_ids_anchor': 'token_type_ids_1',
+        'token_ids_positive': 'token_ids_2',
+        'attention_masks_positive': 'attention_masks_2',
+        'token_type_ids_positive': 'token_type_ids_2',
+        'token_ids_negative': 'token_ids_2',
+        'attention_masks_negative': 'attention_masks_2',
+        'token_type_ids_negative': 'token_type_ids_2'
+    }
+    batch_positive = {label_map[k]: batch[k] for k in (
+        'token_ids_anchor', 'attention_masks_anchor','token_type_ids_anchor',
+        'token_ids_positive', 'attention_masks_positive', 'token_type_ids_positive')
+                }
+    batch_negative = {label_map[k]: batch[k] for k in (
+        'token_ids_anchor', 'attention_masks_anchor','token_type_ids_anchor',
+        'token_ids_negative', 'attention_masks_negative', 'token_type_ids_negative')
+                }
+    
+    batch_size = len(batch['token_ids_anchor'])
+    
+    if task == 'paraphrase_classifier':
+        dtype = torch.long
+    else:
+        dtype = torch.float
+    
+    predictions_positive = _batch_forward_similarity(
+        batch_positive, device, model, task)
+    positive_loss = criterion(
+        predictions_positive, torch.ones(batch_size, dtype=dtype)).sum()
+    
+    predictions_negative = _batch_forward_similarity(
+        batch_negative, device, model, task)
+    negative_loss = criterion(
+        predictions_negative, torch.zeros(batch_size, dtype=dtype)).sum()
+    
     embeddings = _batch_forward_triplet(batch, device, model)
-
-    loss = criterion(*embeddings).sum()
+    triplet_criterion = torch.nn.TripletMarginLoss()
+    triplet_loss = triplet_criterion(*embeddings).sum()
+    
+    loss = 0.5 * triplet_loss + 0.25 * positive_loss + 0.25 * negative_loss
     loss.backward()
 
     optimizer.step()
@@ -182,8 +221,7 @@ def train_one_batch_multitask(
         train_one_batch_contrastive(batch, criterion, device, model,
                                     optimizer, task, weight=weight)
     elif train_mode == 'triplet':
-        forced_criterion = torch.nn.TripletMarginLoss()
-        train_one_batch_triplet(batch, forced_criterion, device, model,
+        train_one_batch_triplet(batch, criterion, device, model,
                                 optimizer, task)
     else:
         raise NotImplementedError(f"train_mode={train_mode} is not supported")

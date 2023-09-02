@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 x,
                 shuffle=True,
                 drop_last=True,
-                collate_fn=x.collate_fn_triplet_unsupervised(rate),
+                collate_fn=x.collate_fn_triplet(rate),
                 batch_size=config_dataloader['batch_size'],
                 num_workers=config_dataloader['num_workers'],
             )
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         overall_config=CONFIG,
         dataloader_mode=config_train['dataloader_mode'],
         train_mode=train_mode,
-        weights=[1, 10, 1],
+        weights=[2, 20, 1],
         verbose=False,
         watcher=watcher,
         skip_train_eval=config_train['skip_train_eval'],
