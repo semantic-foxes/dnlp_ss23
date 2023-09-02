@@ -22,7 +22,7 @@ def train_epoch_exhaust(
     model.train()
 
     if verbose:
-        total_len = sum([len(x.dataset) for x in train_dataloaders])
+        total_len = sum([len(x) for x in train_dataloaders])
         pbar = tqdm(total=total_len, leave=False,
                     desc=f'Training epoch {"" if current_epoch is None else current_epoch} on all tasks')
 
@@ -46,7 +46,7 @@ def train_epoch_exhaust(
         loss.backward()
 
         if verbose:
-            pbar.update(len(batch['targets']))
+            pbar.update(1)
 
         for _ in range(weights[number_chosen] - 1):
             if batches_left[number_chosen] == 0:

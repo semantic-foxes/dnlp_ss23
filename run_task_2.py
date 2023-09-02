@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
-    unfreezer = BasicGradualUnfreezer(model)
+    unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
 
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
