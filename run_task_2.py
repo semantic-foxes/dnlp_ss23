@@ -1,6 +1,5 @@
 import argparse
 import yaml
-import pandas as pd
 import wandb
 
 from torch.utils.data import DataLoader
@@ -14,7 +13,8 @@ from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.utils import seed_everything, generate_device, logger
 from src.core import train_validation_loop_multitask, generate_predictions_multitask
 from src.metrics import accuracy, pearson_correlation
-from src.utils.model_utils import load_state, save_results
+from src.utils.model_utils import load_state
+from src.core.unfreezer import BasicGradualUnfreezer
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -165,6 +165,7 @@ if __name__ == "__main__":
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
+    unfreezer = BasicGradualUnfreezer(model)
 
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
@@ -183,14 +184,15 @@ if __name__ == "__main__":
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
         device=device,
+        unfreezer=unfreezer,
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
         dataloader_mode=config_train['dataloader_mode'],
         weights=[1, 10, 1],
         verbose=False,
-        watcher=CONFIG['watcher']['type'],
+        watcher=watcher,
         skip_train_eval=config_train['skip_train_eval'],
-        best_metric=best_metric
+        best_metric=best_metric,
     )
 
     load_state(model, device, config_train['checkpoint_path'])

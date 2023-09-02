@@ -77,63 +77,6 @@ def train_one_epoch_multitask(
         raise NotImplementedError(message)
 
 
-def train_loop_multitask(
-        model: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        criterion: List[torch.nn.Module],
-        train_loader: List[torch.utils.data.DataLoader],
-        n_epochs: int,
-        device: torch.device,
-        weights: List[int] = [1, 1, 1],
-        watcher: Union[str, None] = None,
-        verbose: bool = True,
-        save_best_path: str = None,
-        overall_config: dict = None,
-        metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
-        dataloader_mode: str = 'sequential',
-        best_metric: dict = {},
-        prior_scores: List = None,
-):
-    if save_best_path and overall_config is None:
-        message = 'No model config is provided while save path is provided.'
-        logger.error(message)
-        raise AttributeError(message)
-
-    # Progress bar handling
-    if verbose:
-        pbar = tqdm(range(n_epochs))
-    else:
-        pbar = range(n_epochs)
-
-    # Watcher handling
-    if watcher == 'wandb':
-        watcher_command = wandb.log
-    elif watcher is not None:
-        message = 'Watchers except WandB are not implemented yet.'
-        logger.error(message)
-        raise NotImplementedError(message)
-
-    # Initialization
-    best_metric = {
-        'sentiment': 0,
-        'paraphrase_classifier': 0,
-        'paraphrase_regressor': -1,
-        **best_metric
-    }
-    current_epoch = 0
-    if prior_scores is None:
-        resulting_scores = []
-    else:
-        resulting_scores = prior_scores.copy()
-
-    logger.info('Starting training and validating the model.')
-    epoch_train_state = None
-
-
-
-    return resulting_scores, best_metric
-    
-
 def train_validation_loop_multitask(
         model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
@@ -143,6 +86,8 @@ def train_validation_loop_multitask(
         val_loader: List[torch.utils.data.DataLoader],
         n_epochs: int,
         device: torch.device,
+        unfreezer=None,
+        scheduler: torch.optim.lr_scheduler._LRScheduler = None,
         weights: List[int] = [1, 1, 1],
         watcher: Union[str, None] = None,
         verbose: bool = True,
@@ -160,6 +105,8 @@ def train_validation_loop_multitask(
 
     Parameters
     ----------
+    scheduler
+    unfreezer
     model : torch.nn.Module
         The model to train.
     optimizer : torch.optim.Optimizer
@@ -225,6 +172,8 @@ def train_validation_loop_multitask(
         logger.error(message)
         raise NotImplementedError(message)
 
+    unfreezer.start()
+
     # Initialization
     best_metric = {
         'sentiment': 0,
@@ -256,6 +205,11 @@ def train_validation_loop_multitask(
         )
         logger.info(f'Finished training epoch {current_epoch}')
 
+        if scheduler is not None:
+            scheduler.step()
+        if unfreezer is not None:
+            unfreezer.step()
+
         current_epoch_scores = {}
         # Validation on train
         if current_epoch % skip_train_eval == 0:
@@ -280,7 +234,7 @@ def train_validation_loop_multitask(
         )
         current_epoch_scores['val'] = epoch_val_scores
 
-        prior_scores.append(current_epoch_scores)
+        resulting_scores.append(current_epoch_scores)
 
         # Upload to watcher
         if watcher is not None:

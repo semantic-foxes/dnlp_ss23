@@ -4,7 +4,7 @@ use_cuda: True
 watcher:
   type: 'wandb' # 'none' for no watcher
   project_name: 'semantic_foxes_bert'
-  mode: 'offline' # "online", "offline" or "disabled"
+  mode: 'online' # "online", "offline" or "disabled"
 
 data:
   sst_dataset:
@@ -21,7 +21,7 @@ data:
     test_path: 'data/sts-test-student.csv'
 
   dataloader:
-    batch_size: 64
+    batch_size: 32
     num_workers: 1
 
 bert_model:
