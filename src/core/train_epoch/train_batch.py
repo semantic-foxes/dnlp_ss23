@@ -125,9 +125,9 @@ def train_one_batch_contrastive(
 ):
     weight_original = 1 - weight
     weight_extra = weight / (len(batch_list) - 1)
-    
+
     optimizer.zero_grad()
-    
+
     original_batch = batch_list.pop(0)
     original_predictions = _batch_forward_similarity(original_batch, device, model, task)
     targets = original_batch['targets'].to(device)
@@ -175,28 +175,28 @@ def train_one_batch_triplet(
         'token_ids_anchor', 'attention_masks_anchor','token_type_ids_anchor',
         'token_ids_negative', 'attention_masks_negative', 'token_type_ids_negative')
                 }
-    
+
     batch_size = len(batch['token_ids_anchor'])
-    
+
     if task == 'paraphrase_classifier':
         dtype = torch.long
     else:
         dtype = torch.float
-    
+
     predictions_positive = _batch_forward_similarity(
         batch_positive, device, model, task)
     positive_loss = criterion(
         predictions_positive, torch.ones(batch_size, dtype=dtype)).sum()
-    
+
     predictions_negative = _batch_forward_similarity(
         batch_negative, device, model, task)
     negative_loss = criterion(
         predictions_negative, torch.zeros(batch_size, dtype=dtype)).sum()
-    
+
     embeddings = _batch_forward_triplet(batch, device, model)
     triplet_criterion = torch.nn.TripletMarginLoss()
     triplet_loss = triplet_criterion(*embeddings).sum()
-    
+
     loss = 0.5 * triplet_loss + 0.25 * positive_loss + 0.25 * negative_loss
     loss.backward()
 

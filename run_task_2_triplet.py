@@ -47,7 +47,7 @@ if __name__ == "__main__":
     triplet_dropout_rates = config_train.get('triplet_dropout_rates', {})
     dropout_sts = triplet_dropout_rates.get('sts', 0.2)
     dropout_quora = triplet_dropout_rates.get('quora', 0.1)
-    
+
     triplet_training_scheme = config_train.get(
         'triplet_training_scheme',
         {'pretrain_epochs': 3,
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         batch_size=config_dataloader['batch_size'],
         num_workers=config_dataloader['num_workers'],
     )
-    
+
     train_dataloaders = [sst_train_dataloader] + [
         DataLoader(
             x,
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         for x, rate in [(quora_train_dataset, dropout_quora),
                         (sts_train_dataset, dropout_sts)]
     ]
-    
+
     val_dataloaders = [
         DataLoader(
             x,
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         train_function = pretrain_validation_loop_multitask
     else:
         train_function = train_validation_loop_multitask
-    
+
     for r in range(triplet_training_scheme['repeat']):
         train_validation_loop_multitask(
             model=model,
@@ -264,7 +264,6 @@ if __name__ == "__main__":
             skip_train_eval=config_train['skip_train_eval'],
             best_metric=best_metric
         )
-            
 
     load_state(model, device, config_train['checkpoint_path'])
 

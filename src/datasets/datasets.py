@@ -238,10 +238,10 @@ class SentenceSimilarityDataset(Dataset):
 
     def _collate_fn_triplet_unsupervised(self, dropout_rate, batch_data):
         sentences_1 = np.array([x[0] for x in batch_data], dtype=object)
-        
+
         def mask_encode(sentences):
             return self._mask(dropout_rate, *self._encode(sentences.tolist()))
-        
+
         # TODO: rewrite to return tuple, remove code triplication
         (token_ids_anchor,
          attention_masks_anchor,
@@ -297,7 +297,7 @@ class SentenceSimilarityDataset(Dataset):
                 targets = torch.FloatTensor(targets)
         else:
             raise NotImplementedError()
-        
+
         def mask_encode(sentences):
             return self._mask(dropout_rate, *self._encode(sentences.tolist(),
                                                           padding='max_length', max_length=40))
@@ -313,16 +313,16 @@ class SentenceSimilarityDataset(Dataset):
                                            padding='max_length', max_length=40)
         # TODO: slow
         sentences_2_roll = mask_encode(np.roll(sentences_1, -1))
-        
+
         target_mask = (targets != 0).unsqueeze(1)
-        
+
         result_positive = [target_mask * sentences_2_encoded[i] 
                            + ~target_mask * sentences_1_masked_encoded[i]
                            for i in range(3)]
         result_negative = [target_mask * sentences_2_roll[i]
                            + ~target_mask * sentences_2_encoded[i] 
                            for i in range(3)]
-        
+
         result = {
             'token_ids_anchor': token_ids_anchor,
             'attention_masks_anchor': attention_masks_anchor,
@@ -334,13 +334,13 @@ class SentenceSimilarityDataset(Dataset):
             'attention_masks_negative': result_negative[1],
             'token_type_ids_negative': result_negative[2]
         }
-        
+
         return result
 
     def collate_fn_triplet(self, dropout_rate):
         """ Returns triplets of the following form:
         anchor = sentences_1
-        positive = sentences_2 for positive pairs, 
+        positive = sentences_2 for positive pairs,
                    dropout(sentences_1) for negative pairs
         negative = roll(sentences_2) for positive pairs
                    sentences_2 for negative pairs

@@ -129,7 +129,7 @@ if __name__ == "__main__":
         batch_size=config_dataloader['batch_size'],
         num_workers=config_dataloader['num_workers'],
     )
-    
+
     train_eval_dataloaders = [sst_train_dataloader] + [
         DataLoader(
             x,
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             for x, rate in [(quora_train_dataset, dropout_quora), (sts_train_dataset, dropout_sts)]
         ]
     else:
-        train_dataloaders = train_eval_dataloaders    
+        train_dataloaders = train_eval_dataloaders
 
     val_dataloaders = [
         DataLoader(
