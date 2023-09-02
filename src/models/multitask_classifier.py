@@ -85,7 +85,10 @@ class MultitaskBERT(nn.Module):
             attention_mask_2: torch.Tensor = None,
             return_embeddings: bool = False,
     ):
-        if task == 'sentiment':
+        if task == 'embed':
+            result = self.embed(input_ids_1, attention_mask_1)
+
+        elif task == 'sentiment':
             result = self.predict_sentiment(input_ids_1, attention_mask_1)
 
         elif task == 'paraphrase_classifier':
@@ -107,6 +110,10 @@ class MultitaskBERT(nn.Module):
         else:
             raise AttributeError
 
+        return result
+
+    def embed(self, input_ids, attention_mask):
+        result = self.bert(input_ids, attention_mask)['pooler_output']
         return result
 
     def predict_sentiment(self, input_ids, attention_mask):

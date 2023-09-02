@@ -14,6 +14,8 @@ def train_epoch_sequential(
         optimizer: torch.optim.Optimizer,
         criterions: List[torch.nn.Module],
         device: torch.device,
+        train_mode: str,
+        overall_config: dict = {},
         cut_to_min_size: bool = False,
         verbose: bool = True,
         current_epoch: int = None,
@@ -70,6 +72,8 @@ def train_epoch_sequential(
                 model, batch, optimizer, criterion, device, task, 
                 is_optimizer_step=is_optimizer_step,
                 loss_divisor=skip_optimizer_step,
+                train_mode=train_mode,
+                overall_config=overall_config,
             )
 
             if verbose:

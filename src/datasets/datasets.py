@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import partial
 import numpy as np
 import pandas as pd
 import torch
@@ -80,7 +81,6 @@ class SentenceSimilarityDataset(Dataset):
             local_only: bool = False,
             index_col: int = 0,
             nrows: int = None,
-            inflation_params: tuple[int, int] = None,
     ):
         dataset = pd.read_csv(dataset_path, index_col=index_col, delimiter='\t', nrows=nrows)
         # Data handling
@@ -109,13 +109,6 @@ class SentenceSimilarityDataset(Dataset):
             pretrained_model_name_or_path='bert-base-uncased',
             local_files_only=local_only
         )
-        if inflation_params is not None:
-            self.inflation = True
-            self.batch_size = inflation_params[0]
-            self.exp_factor = inflation_params[1]
-            self.inflation_idx = self._compute_inflation_idx(self.batch_size, self.exp_factor)
-        else:
-            self.inflation = False
 
     @staticmethod
     def preprocess_string(s):
@@ -139,6 +132,40 @@ class SentenceSimilarityDataset(Dataset):
             return (self.dataset.iloc[index]['sentence1'],
                     self.dataset.iloc[index]['sentence2'])
 
+    def _encode(self, sentences: list[str], padding = True, max_length=None
+               ) -> tuple[torch.LongTensor, torch.LongTensor, torch.LongTensor]:
+        encodings = self.tokenizer(
+            sentences,
+            return_tensors='pt',
+            padding=padding,
+            max_length=max_length,
+            truncation=True
+        )
+        token_ids = torch.LongTensor(encodings['input_ids'])
+        attention_masks = torch.LongTensor(encodings['attention_mask'])
+        token_type_ids = torch.LongTensor(encodings['token_type_ids'])
+        return token_ids, attention_masks, token_type_ids
+
+    @staticmethod
+    def _mask(dropout_rate, token_ids, attention_masks, token_type_ids):
+            # TODO: special_tokens_mask (IMPORTANT)
+            # (add &~special_tokens_mask; see DataCollatorForLanguageModeling)
+            dropout_mask = torch.empty(
+                token_ids.shape, device=token_ids.device, dtype=int
+            ).bernoulli_(1 - dropout_rate)
+
+            # (c) Lingyu Zhang
+            def mask_shift(tensor, mask):
+                masked = tensor * mask
+                shifted = torch.gather(
+                    masked, 1,
+                    masked.ne(0).argsort(dim=1, descending=True, stable=True)
+                )
+                return shifted
+            token_ids = mask_shift(token_ids, dropout_mask)
+            attention_masks = mask_shift(attention_masks, dropout_mask)
+            token_type_ids = mask_shift(token_type_ids, dropout_mask)
+            return token_ids, attention_masks, token_type_ids
 
     def collate_fn(self, batch_data):
         sentences_1 = [x[0] for x in batch_data]
@@ -181,47 +208,141 @@ class SentenceSimilarityDataset(Dataset):
                 result['targets'] = torch.LongTensor(targets)
             else:
                 result['targets'] = torch.FloatTensor(targets)
-        if self.inflation:
-            result = self._inflate_batch(result, self.inflation_idx, self.return_targets)
 
         return result
 
-    @staticmethod
-    def _compute_inflation_idx(batch_size: int, exp_factor: int) -> np.ndarray:
-        inflation_idx = (
-            np.repeat(batch_size * np.arange(batch_size), exp_factor)
-            + (
-                np.add.outer(np.arange(exp_factor), np.arange(batch_size))
-                % np.repeat(batch_size, (batch_size))
-            ).T.flatten()
-        )
-        return inflation_idx
+    def _collate_fn_contrastive(self, exp_factor, batch_data):
+        batch = self.collate_fn(batch_data)
+        result = [batch]
 
-    @staticmethod
-    def _inflate_batch(batch: dict, inflation_idx: np.ndarray = None, return_targets: bool = True) -> dict:
-        result = {}
-        batch_size = batch['token_ids_1'].shape[0]
-        if inflation_idx is not None:
-            def apply_filter(x: torch.tensor) -> torch.tensor:
-                return x[inflation_idx]
-        else:
-            def apply_filter(x):
-                return x
-        for k in ('token_ids_1', 'token_type_ids_1', 'attention_masks_1'):
-            result[k] = apply_filter(batch[k].repeat(batch_size, 1))
-        for k in ('token_ids_2', 'token_type_ids_2', 'attention_masks_2'):
-            result[k] = apply_filter(batch[k].repeat_interleave(batch_size, dim=0))
-        if return_targets:
-            result['targets'] = apply_filter(torch.diag(batch['targets']).flatten())
+        for i in range(1, exp_factor):
+            batch_transformed = {}
+            for k in ('token_ids_1', 'token_type_ids_1', 'attention_masks_1'):
+                batch_transformed[k] = batch[k]
+            for k in ('token_ids_2', 'token_type_ids_2', 'attention_masks_2'):
+                batch_transformed[k] = batch[k].roll(-i)
+            if self.return_targets:
+                batch_transformed['targets'] = torch.zeros_like(batch['targets'])
+            result.append(batch_transformed)
+
         return result
 
-    @classmethod
-    def inflate_batch(cls, batch: dict, exp_factor: int = None, return_targets: bool = True) -> dict:
-        """ Transform a batch of pairs (a_i, b_i) by adding to it some of the pairs (a_i, b_j) for j != i.
-        The resulting batch will be exp_factor times bigger than the original one. The default value of exp_factor
-        corresponds to adding all pairs (a_i, b_j), and is equivalent to exp_factor=batch_size.
-        Should be applied after collate_fn.
+    def collate_fn_contrastive(self, exp_factor):
+        """Create a collate_fn function for contrastive learning.
+        The function returns a list of exp_factor batches. The first
+        element is the original batch, the other elements are
+        additional batches of negative pairs, with targets set to 0 if
+        return_targets is set. For batch structure, see collate_fn().
         """
-        batch_size = batch['token_ids_1'].shape[0]
-        inflation_idx = cls._compute_inflation_idx(batch_size, exp_factor)
-        result = cls._inflate_batch(batch, inflation_idx, return_targets)
+        return partial(self._collate_fn_contrastive, exp_factor)
+
+    def _collate_fn_triplet_unsupervised(self, dropout_rate, batch_data):
+        sentences_1 = np.array([x[0] for x in batch_data], dtype=object)
+
+        def mask_encode(sentences):
+            return self._mask(dropout_rate, *self._encode(sentences.tolist()))
+
+        # TODO: rewrite to return tuple, remove code triplication
+        (token_ids_anchor,
+         attention_masks_anchor,
+         token_type_ids_anchor) = mask_encode(sentences_1)
+
+        (token_ids_positive,
+         attention_masks_positive,
+         token_type_ids_positive) = mask_encode(sentences_1)
+
+        # TODO: May be slower than rolling after mask_encode
+        (token_ids_negative,
+         attention_masks_negative,
+         token_type_ids_negative) = mask_encode(np.roll(sentences_1, -1))
+
+        result = {
+            'token_ids_anchor': token_ids_anchor,
+            'attention_masks_anchor': attention_masks_anchor,
+            'token_type_ids_anchor': token_type_ids_anchor,
+            'token_ids_positive': token_ids_positive,
+            'attention_masks_positive': attention_masks_positive,
+            'token_type_ids_positive': token_type_ids_positive,
+            'token_ids_negative': token_ids_negative,
+            'attention_masks_negative': attention_masks_negative,
+            'token_type_ids_negative': token_type_ids_negative,
+        }
+
+        return result
+
+    def collate_fn_triplet_unsupervised(self, dropout_rate):
+        """Returns triplets of the form:
+        anchor = dropout(sentences_1),
+        positive = dropout(sentences_1),
+        negative = roll(dropout(sentences_1)).
+        For batch structure, see collate_fn().
+        """
+        return partial(self._collate_fn_triplet_unsupervised, dropout_rate)
+
+    def _collate_fn_triplet_supervised_v1(self, dropout_rate, batch_data):
+        # TODO:
+        # for positive pairs pos = sentences_2, neg = roll.
+        # for negative pairs pos = dropout(sentences_1), neg = roll.
+        pass
+
+    def _collate_fn_triplet(self, dropout_rate, batch_data):
+        sentences_1 = np.array([x[0] for x in batch_data], dtype=object)
+        sentences_2 = np.array([x[1] for x in batch_data], dtype=object)
+
+        if self.return_targets:
+            targets = [x[2] for x in batch_data]
+            if self.binary_task:
+                targets = torch.LongTensor(targets)
+            else:
+                targets = torch.FloatTensor(targets)
+        else:
+            raise NotImplementedError()
+
+        def mask_encode(sentences):
+            return self._mask(dropout_rate, *self._encode(sentences.tolist(),
+                                                          padding='max_length', max_length=40))
+
+        # TODO: slow
+        (token_ids_anchor,
+         attention_masks_anchor,
+         token_type_ids_anchor) = self._encode(sentences_1.tolist(),
+                                               padding='max_length', max_length=40)
+
+        sentences_1_masked_encoded = mask_encode(sentences_1)
+        sentences_2_encoded = self._encode(sentences_2.tolist(),
+                                           padding='max_length', max_length=40)
+        # TODO: slow
+        sentences_2_roll = mask_encode(np.roll(sentences_1, -1))
+
+        target_mask = (targets != 0).unsqueeze(1)
+
+        result_positive = [target_mask * sentences_2_encoded[i] 
+                           + ~target_mask * sentences_1_masked_encoded[i]
+                           for i in range(3)]
+        result_negative = [target_mask * sentences_2_roll[i]
+                           + ~target_mask * sentences_2_encoded[i] 
+                           for i in range(3)]
+
+        result = {
+            'token_ids_anchor': token_ids_anchor,
+            'attention_masks_anchor': attention_masks_anchor,
+            'token_type_ids_anchor': token_type_ids_anchor,
+            'token_ids_positive': result_positive[0],
+            'attention_masks_positive': result_positive[1],
+            'token_type_ids_positive': result_positive[2],
+            'token_ids_negative': result_negative[0],
+            'attention_masks_negative': result_negative[1],
+            'token_type_ids_negative': result_negative[2]
+        }
+
+        return result
+
+    def collate_fn_triplet(self, dropout_rate):
+        """ Returns triplets of the following form:
+        anchor = sentences_1
+        positive = sentences_2 for positive pairs,
+                   dropout(sentences_1) for negative pairs
+        negative = roll(sentences_2) for positive pairs
+                   sentences_2 for negative pairs
+        """
+        return partial(self._collate_fn_triplet, dropout_rate)

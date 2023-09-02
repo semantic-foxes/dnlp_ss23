@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from torch import nn
 from src.core.evaluation_multitask import evaluate_model_multitask
 from src.core.pretrain_multitask import pretrain_validation_loop_multitask
-from src.metrics.regression_metrics import pearson_correlation_loss
 
 from src.models import MultitaskBERT
 from src.optim import AdamW
@@ -21,8 +20,6 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default='config.yaml')
     parser.add_argument("--restore", action='store_true')
-    parser.add_argument("--id", type=str, default='')
-    parser.add_argument("--silent", action='store_false')
 
     args = parser.parse_args()
     return args
@@ -41,33 +38,33 @@ if __name__ == "__main__":
     config_bert = CONFIG['bert_model']
     config_train = CONFIG['train']
 
-    skip_optimizer_step = config_train.get('skip_optimizer_step')
-    skip_optimizer_step = 1 if skip_optimizer_step is None else skip_optimizer_step
-
     seed_everything(CONFIG['seed'])
     device = generate_device(CONFIG['use_cuda'])
 
     # TODO: keep default values separately
-    train_mode = config_train.get('train_mode', 'standard')
-    if train_mode == 'contrastive':
-        exp_factor = config_train.get('exp_factor', 2)
-    elif train_mode == 'triplet':
-        triplet_dropout_rates = config_train.get(
-            'triplet_dropout_rates', {})
-        dropout_sts = triplet_dropout_rates.get('sts', 0.2)
-        dropout_quora =triplet_dropout_rates.get('quora', 0.05)
+    train_mode = 'triplet'
+    exp_factor = config_train.get('exp_factor', 2)
+    triplet_dropout_rates = config_train.get('triplet_dropout_rates', {})
+    dropout_sts = triplet_dropout_rates.get('sts', 0.2)
+    dropout_quora = triplet_dropout_rates.get('quora', 0.1)
+
+    triplet_training_scheme = config_train.get(
+        'triplet_training_scheme',
+        {'pretrain_epochs': 3,
+         'finetune_epochs': 3,
+         'repeat': 2
+        }
+    )
 
     if CONFIG['watcher']['type'] == 'wandb':
         wandb.init(
             project=CONFIG['watcher']['project_name'],
             config=CONFIG,
             mode=CONFIG['watcher']['mode'],
-            resume='must' if args.restore else args.restore,
-            id=args.id if args.id else None,
         )
         watcher = 'wandb'
 
-    elif CONFIG['watcher']['type'] is None:
+    elif CONFIG['watcher']['type'] == 'none':
         watcher = None
 
     else:
@@ -138,7 +135,7 @@ if __name__ == "__main__":
         num_workers=config_dataloader['num_workers'],
     )
 
-    train_eval_dataloaders = [sst_train_dataloader] + [
+    train_dataloaders = [sst_train_dataloader] + [
         DataLoader(
             x,
             shuffle=True,
@@ -149,33 +146,29 @@ if __name__ == "__main__":
         )
         for x in [quora_train_dataset, sts_train_dataset]
     ]
-
-    if train_mode == 'contrastive':
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn_contrastive(exp_factor),
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x in [quora_train_dataset, sts_train_dataset]
-        ]
-    elif train_mode == 'triplet':
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn_triplet(rate),
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x, rate in [(quora_train_dataset, dropout_quora), (sts_train_dataset, dropout_sts)]
-        ]
-    else:
-        train_dataloaders = train_eval_dataloaders
+    train_dataloaders_contrastive = [sst_train_dataloader] + [
+        DataLoader(
+            x,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=x.collate_fn_contrastive(exp_factor),
+            batch_size=config_dataloader['batch_size'],
+            num_workers=config_dataloader['num_workers'],
+        )
+        for x in [quora_train_dataset, sts_train_dataset]
+    ]
+    train_dataloaders_triplet = [sst_train_dataloader] + [
+        DataLoader(
+            x,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=x.collate_fn_triplet_unsupervised(rate),
+            batch_size=config_dataloader['batch_size'],
+            num_workers=config_dataloader['num_workers'],
+        )
+        for x, rate in [(quora_train_dataset, dropout_quora),
+                        (sts_train_dataset, dropout_sts)]
+    ]
 
     val_dataloaders = [
         DataLoader(
@@ -199,13 +192,6 @@ if __name__ == "__main__":
         # the order of datasets must match the order in config.yaml (predictions save_path)
     ]
 
-    weights = [1, 10, 1]
-    if config_quora.get('weight'):
-        weights = [1, config_quora.get('weight'), 1]
-    if config_train.get('dataloader_mode') == 'exhaust':
-        weights = [2, 20, 1]
-
-    logger.info('Create Model')
     model = MultitaskBERT(
         num_labels=5,
         bert_mode=config_bert['bert_mode'],
@@ -215,93 +201,68 @@ if __name__ == "__main__":
         attention_dropout_prob=config_bert['attention_dropout_prob'],
     )
 
-    logger.info('Model to device')
     model = model.to(device)
 
     metrics = [accuracy, accuracy, pearson_correlation]
     criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
 
-    if CONFIG.get('train', {}).get('use_pearson_loss'):
-        criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation_loss]
-
-    cosine_loss = None
-    if config_train.get('add_cosine_loss'):
-        cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
-
     best_metric = {}
     if args.restore:
         load_state(model, device, config_bert['weights_path'])
-        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
+        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
         best_metric = best_scores['metric']
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
 
-    default_args = {
-        'model': model,
-        'optimizer': optimizer,
-        'criterion': criteria,
-        'metric': metrics,
-        'train_loader': train_dataloaders,
-        'val_loader': val_dataloaders,
-        'n_epochs': config_train['n_epochs'],
-        'device': device,
-        'save_best_path': config_train['checkpoint_path'],
-        'overall_config': CONFIG,
-        'dataloader_mode': config_train['dataloader_mode'],
-        'weights': weights,
-        'verbose': args.silent,
-        'watcher': CONFIG['watcher']['type'],
-        'skip_train_eval': config_train['skip_train_eval'],
-        'best_metric': best_metric,
-        'skip_optimizer_step': skip_optimizer_step,
-        'cosine_loss': cosine_loss,
-        'train_mode': train_mode,
-        'train_eval_loader': train_eval_dataloaders,
-    }
-    # Pre train
-    config_pre_train = CONFIG.get('pre_train', {})
-    if config_pre_train.get('n_epochs', 0):
-        logger.info(f'Starting PRE train on all the tasks.')
-        model.freeze_bert(True)
-        optimizer_pre = AdamW(model.parameters(), lr=config_pre_train['lr'])
-        _, best_metric = pretrain_validation_loop_multitask(
-            **{
-                **default_args,
-                'optimizer': optimizer_pre,
-                'n_epochs': 1,
-                'dataloader_mode': config_pre_train['dataloader_mode'],
-                'weights': [1, 1, 1],
-                'best_metric': best_metric,
-                'skip_optimizer_step': config_pre_train.get('skip_optimizer_step', 1),
-                'cosine_loss': None,
-            }
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
+                f' in {train_mode} mode on all the tasks.')
+
+    if config_bert['bert_mode'] == 'pretrain':
+        train_function = pretrain_validation_loop_multitask
+    else:
+        train_function = train_validation_loop_multitask
+
+    for r in range(triplet_training_scheme['repeat']):
+        train_validation_loop_multitask(
+            model=model,
+            optimizer=optimizer,
+            criterion=criteria,
+            metric=metrics,
+            train_loader=train_dataloaders_triplet,
+            train_eval_loader=train_dataloaders,
+            val_loader=val_dataloaders,
+            n_epochs=triplet_training_scheme['pretrain_epochs'],
+            device=device,
+            save_best_path=config_train['checkpoint_path'],
+            overall_config=CONFIG,
+            dataloader_mode=config_train['dataloader_mode'],
+            train_mode='triplet',
+            weights=[1, 10, 1],
+            verbose=False,
+            watcher=watcher,
+            skip_train_eval=config_train['skip_train_eval'],
+            best_metric=best_metric
         )
-        load_state(model, device, config_train['checkpoint_path'])
-
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
-                f'in {train_mode} mode all the tasks.')
-
-    _, best_metric = train_validation_loop_multitask(**{**default_args, 'best_metric': best_metric})
-
-    # Post train
-    config_post_train = CONFIG.get('post_train', {})
-    if config_post_train.get('n_epochs', 0):
-        logger.info(f'Starting POST train on all the tasks.')
-        load_state(model, device, config_train['checkpoint_path'])
-        model.freeze_bert(True)
-        optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
-        _, best_metric = pretrain_validation_loop_multitask(
-            **{
-                **default_args,
-                'optimizer': optimizer_post,
-                'n_epochs': config_post_train['n_epochs'],
-                'dataloader_mode': config_post_train['dataloader_mode'],
-                'weights': [1, 1, 1],
-                'best_metric': best_metric,
-                'skip_optimizer_step': config_post_train.get('skip_optimizer_step', 1),
-                'cosine_loss': None,
-            }
+        pretrain_validation_loop_multitask(
+            model=model,
+            optimizer=optimizer,
+            criterion=criteria,
+            metric=metrics,
+            train_loader=train_dataloaders_contrastive,
+            train_eval_loader=train_dataloaders,
+            val_loader=val_dataloaders,
+            n_epochs=triplet_training_scheme['finetune_epochs'],
+            device=device,
+            save_best_path=config_train['checkpoint_path'],
+            overall_config=CONFIG,
+            dataloader_mode=config_train['dataloader_mode'],
+            train_mode='contrastive',
+            weights=[1, 10, 1],
+            verbose=False,
+            watcher=watcher,
+            skip_train_eval=config_train['skip_train_eval'],
+            best_metric=best_metric
         )
 
     load_state(model, device, config_train['checkpoint_path'])
@@ -309,6 +270,6 @@ if __name__ == "__main__":
     logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
     
-    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss, CONFIG, args.silent)
+    evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria)
     
-    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values(), CONFIG)
+    generate_predictions_multitask(model, device, test_dataloaders, config_prediction.values())

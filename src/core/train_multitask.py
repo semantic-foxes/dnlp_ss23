@@ -19,6 +19,7 @@ def train_one_epoch_multitask(
         criterions: List[torch.nn.Module],
         device: torch.device,
         dataloader_mode: str = 'sequential',
+        train_mode: str = 'standard',
         verbose: bool = True,
         current_epoch: int = None,
         prev_state: List[Iterable] = None,
@@ -34,6 +35,8 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
             weights=weights
@@ -46,6 +49,8 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
         )
@@ -57,6 +62,8 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
+            overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
             cut_to_min_size=True,
@@ -72,6 +79,7 @@ def train_one_epoch_multitask(
             optimizer=optimizer,
             criterions=criterions,
             device=device,
+            train_mode=train_mode,
             verbose=verbose,
             current_epoch=current_epoch,
             prev_data_iters=prev_state,
@@ -93,6 +101,7 @@ def train_validation_loop_multitask(
         criterion: List[torch.nn.Module],
         metric: List[Callable[[torch.Tensor, torch.Tensor], float]],
         train_loader: List[torch.utils.data.DataLoader],
+        train_eval_loader: List[torch.utils.data.DataLoader],
         val_loader: List[torch.utils.data.DataLoader],
         n_epochs: int,
         device: torch.device,
@@ -103,6 +112,7 @@ def train_validation_loop_multitask(
         overall_config: dict = None,
         metric_comparator: Callable[[dict, dict], bool] = sum_comparator,
         dataloader_mode: str = 'sequential',
+        train_mode: str = 'standard',
         skip_train_eval: int = 1,
         best_metric: dict = {},
         prior_scores: List = [],
@@ -145,6 +155,8 @@ def train_validation_loop_multitask(
         Compares evaluated metrics 
     dataloader_mode: 
         strategy to combine training datasets 'exhaust' or 'sequential' or 'min' or 'continuous'
+    train_mode:
+        'standard' or 'contrastive' or 'triplet_unsupervised'
     skip_train_eval: 
         skip every n-th evaluation of training datasets
     best_metric: 
@@ -205,6 +217,7 @@ def train_validation_loop_multitask(
             skip_optimizer_step=skip_optimizer_step,
             cosine_loss=cosine_loss,
             overall_config=overall_config,
+            train_mode=train_mode,
         )
         logger.info(f'Finished training epoch {current_epoch}')
 
@@ -214,7 +227,7 @@ def train_validation_loop_multitask(
             logger.info(f'Training results for epoch {current_epoch}')
             epoch_train_scores = evaluate_model_multitask(
                 model,
-                train_loader,
+                train_eval_loader,
                 device,
                 metric,
                 criterion,

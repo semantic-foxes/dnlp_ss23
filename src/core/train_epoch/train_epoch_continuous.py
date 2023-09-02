@@ -16,6 +16,7 @@ def train_epoch_continuous(
         optimizer: torch.optim.Optimizer,
         criterions: List[torch.nn.Module],
         device: torch.device,
+        train_mode: str,
         number_of_batches: int = None,
         verbose: bool = True,
         current_epoch: int = None,
@@ -90,6 +91,8 @@ def train_epoch_continuous(
             is_optimizer_step=is_optimizer_step,
             loss_divisor=loss_divisor,
             cosine_loss=cosine_loss,
+            train_mode=train_mode, 
+            overall_config=overall_config,
         )
 
     size = len(data_iters)
@@ -109,4 +112,3 @@ def train_epoch_continuous(
                 optimizer_steps +=1
 
     return data_iters
-
