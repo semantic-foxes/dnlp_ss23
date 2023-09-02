@@ -38,6 +38,7 @@ train:
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'triplet' # 'standard' or 'contrastive' or 'triplet'
+  triplet_weight: 0.3
   triplet_dropout_rates:
       sts: 0.2
       quora: 0.1

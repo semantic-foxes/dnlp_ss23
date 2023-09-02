@@ -152,7 +152,8 @@ def train_one_batch_triplet(
         device: torch.device,
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
-        task: str
+        task: str,
+        weight: float = 0.5
 ):
     optimizer.zero_grad()
 
@@ -199,7 +200,9 @@ def train_one_batch_triplet(
     triplet_criterion = torch.nn.TripletMarginLoss()
     triplet_loss = triplet_criterion(*embeddings).sum()
 
-    loss = 0.5 * triplet_loss + 0.25 * positive_loss + 0.25 * negative_loss
+    loss = (weight * triplet_loss
+            + 0.5 * (1 - weight) * positive_loss
+            + 0.5 * (1 - weight) * negative_loss)
     loss.backward()
 
     optimizer.step()
@@ -223,6 +226,7 @@ def train_one_batch_multitask(
         train_one_batch_contrastive(batch, criterion, device, model,
                                     optimizer, task, weight=weight)
     elif train_mode == 'triplet':
+        weight = overall_config['train'].get('triplet_weight', 0.5)
         train_one_batch_triplet(batch, criterion, device, model,
                                 optimizer, task)
     else:
