@@ -69,7 +69,7 @@ def train_epoch_continuous(
         task = data_iters[number_chosen]._dataset.task
 
         if is_optimizer_step and freeze_bert_steps:
-            model.freeze_bert(not optimizer_steps % (freeze_bert_steps+1) == 0)
+            model.freeze_bert(not optimizer_steps % (freeze_bert_steps+1) == 0, current_epoch)
 
         # reset a dataloader if ended
         try:

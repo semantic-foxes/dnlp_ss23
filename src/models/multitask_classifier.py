@@ -43,13 +43,14 @@ class MultitaskBERT(nn.Module):
         )
 
         # Pretrain mode does not require updating bert parameters.
-        if bert_mode == 'pretrain':
-            self.requires_grad_(False)
-        elif bert_mode == 'finetune':
-            self.requires_grad_(True)
-        else:
-            raise AttributeError('Incorrect mode for BERT model. Should be'
-                                 'either \'pretrain\' or \'finetune\'.')
+        # if bert_mode == 'pretrain':
+        #     self.requires_grad_(False)
+        # elif bert_mode == 'finetune':
+        #     self.requires_grad_(True)
+        # else:
+        #     raise AttributeError('Incorrect mode for BERT model. Should be'
+        #                          'either \'pretrain\' or \'finetune\'.')
+        self.requires_grad_(False)
 
         self.sentiment_classifier = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
@@ -133,10 +134,11 @@ class MultitaskBERT(nn.Module):
         result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 2.5 + 2.5
         return result.flatten()
 
-    def freeze_bert(self, freeze: bool):
-        self.requires_grad_(freeze)
-        self.sentiment_classifier.requires_grad_(True)
-        self.paraphrase_classifier.requires_grad_(True)
-        self.paraphrase_regressor_1.requires_grad_(True)
-        self.paraphrase_regressor_2.requires_grad_(True)
-        self.paraphrase_decision.requires_grad_(True)
+    def freeze_bert(self, freeze: bool, unfreeze_depth: int = 0):
+        layers = [self.bert.pooler_dense, *self.bert.bert_layers[::-1]]
+        for i, layer in enumerate(layers):
+            if freeze:
+                layer.requires_grad_(False)
+            else:
+                layer.requires_grad_(i < unfreeze_depth)
+            

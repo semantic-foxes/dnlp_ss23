@@ -233,7 +233,6 @@ if __name__ == "__main__":
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
 
-    model.freeze_bert(False)
     _, best_metric = train_validation_loop_multitask(**{**default_args, 'best_metric': best_metric})
 
     # Post train
