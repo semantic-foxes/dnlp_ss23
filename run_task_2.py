@@ -236,7 +236,16 @@ if __name__ == "__main__":
     best_metric = {}
     if args.restore or CONFIG.get('restore'):
         load_state(model, device, config_bert['weights_path'])
-        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
+        best_scores = evaluate_model_multitask(
+            model=model,
+            eval_dataloaders=val_dataloaders,
+            device=device,
+            metrics=metrics,
+            criterions=criteria,
+            cosine_loss=cosine_loss,
+            verbose=args.silent,
+            set_name='val',
+        )
         best_metric = best_scores['metric']
 
     weights = [x['weight'] for x in (config_sst, config_quora, config_sts)]
