@@ -308,7 +308,7 @@ generated.
 
 For a collection of objects `[(a_1, b_1, target_1), ... ,(a_n, b_n, target_n)]` the collator
 returns a list of batches, the first of which is the original batch, while the others are batches corresponding to
-`(a_i, b_$\sigma$(i), 0)` for the first `exp_factor` - 1 cyclic shifts.
+`(a_i, b_s(i), 0)` for the first `exp_factor` - 1 cyclic shifts s.
 
 The model is then trained on this data in a similar way to the standard training mode.
 The difference is that, instead of optimizing the loss on the original batch of objects,
