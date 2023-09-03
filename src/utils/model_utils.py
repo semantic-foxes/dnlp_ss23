@@ -81,7 +81,7 @@ def save_state(
         'config': config
     }
 
-    torch.save(save_info, filepath)
+    # torch.save(save_info, filepath)
     logger.info(f'Successfully saved the model, optimizer '
                 f'and config to {filepath}.')
 
@@ -95,7 +95,7 @@ def load_state(
     
     saved = torch.load(filepath)
 
-    # model.load_state_dict(saved['model'])
+    model.load_state_dict(saved['model'])
     model = model.to(device)
     logger.info(f"Loaded model from {filepath}")
 
