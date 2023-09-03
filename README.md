@@ -250,7 +250,7 @@ Multi-batch approach turned out to preserve same good performance for `Quora` du
 
 ### [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html) [Danila Litskevich]
 
-`CosineEmbeddingsLoss` can be applied to `Quora` for futher regularization.
+`CosineEmbeddingsLoss` can be applied only to `Quora` for futher regularization.
 
 ### Mix freeze/unfreeze steps [Danila Litskevich]
 
