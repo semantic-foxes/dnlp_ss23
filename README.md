@@ -31,6 +31,8 @@ This is a multi-label classification problem. The pre-split data is available in
 - `data/ids-sst-dev.csv` (Validation set, 1101 entries)
 - `data/ids-sst-test-student.csv` (Test set, 2210 entries)
 
+The metric to test this dataset is accuracy.
+
 ### Quora Dataset
 
 The Quora dataset consists of pairs of questions, labeled to indicate if the questions are paraphrases of one another. This is a binary classification problem. The pre-split data is available in:
@@ -39,6 +41,8 @@ The Quora dataset consists of pairs of questions, labeled to indicate if the que
 - `data/quora-dev.csv` (Validation set, 20215 entries)
 - `data/quora-test-student.csv` (Test set, 40431 entries)
 
+The metric to test this dataset is accuracy.
+
 ### SemEval STS Benchmark Dataset
 
 This dataset provides pairs of sentences and scores reflecting the similarity between each pair. As its structure is close to the Quora dataset, they share the same `dataset` class. The pre-split data is available in:
@@ -46,6 +50,8 @@ This dataset provides pairs of sentences and scores reflecting the similarity be
 - `data/sts-train.csv` (Training set, 6041 entries)
 - `data/sts-dev.csv` (Validation set, 864 entries)
 - `data/sts-test-student.csv` (Test set, 1726 entries)
+
+The metric to test this dataset is Pearson correlation.
 
 ## Methodology
 
@@ -56,16 +62,43 @@ We used `bert-base-uncased` BERT.
 ### Data combination
 
 Since 3 datasets have different amount of data, we can combine them differently for training purposes.
-There are several options for `dataloader_mode`
+There are several options for `dataloader_mode`:
 
-- `min` - crops all datasets by minimal length
-- `sequential` - traverse the whole dataset one after another (good for pretrain)
+- `sequential` - traverse the whole dataset one after another (good for training with freezed BERT)
 - `continuos` - 'infinitely' iterate over datasets (one epoch is determined by the minimal length among datasets)
 - `exhaust` - choose batch randomly without replacements
 
+Additionally, there are several options to enhance behaviour of these combinations:
+
+- `weights` - determine how many batches to consider for each dataset (e.g. 1 from `SST`, 10 from `Quora` and 1 from `STS`).
+- `skip_optimizer_step` - allows to make an optimizer step every n-th times.
+- `is_multi_batch` - enforces choosing datasets in a way that
+during choosing times `3n`, `3n+1`, `3n+2` we draw all different datasets.
+
 ### Best metric selection
 
-In order to compare metrics, we use their sum.
+Since there is an ambiguity how one can compare `3` metrics simultaneously, we determine a better model simply using sum of metrics.
+
+### Loss Functions
+
+By default we are using the following losses:
+
+- `CrossEntropyLoss` - `SST` and `Quora`
+- `MSELoss` - `STS`
+
+There is an option to use a negative Pearson correlation as a loss for `STS`.
+
+Also, one can add additional
+[`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html)
+for `Quora`.
+
+### Gradual unfreeze
+
+We utilize gradually unfreezing of BERT layers during finetuning.
+
+Also, there is option `freeze_bert_steps` to mix steps with freezed  and  gradually unfreezed BERT.
+
+### Scheduler
 
 ## Experiments
 
