@@ -1,0 +1,69 @@
+seed: 11711
+use_cuda: True
+
+watcher:
+  type: 'wandb' # null for no watcher
+  project_name: 'semantic_foxes_bert'
+  mode: 'offline' # "online", "offline" or "disabled"
+
+data:
+  sst_dataset:
+    train_path: 'data/ids-sst-train.csv'
+    val_path: 'data/ids-sst-dev.csv'
+    test_path: 'data/ids-sst-test-student.csv'
+    weight: 1
+  quora_dataset:
+    train_path: 'data/quora-train.csv'
+    val_path: 'data/quora-dev.csv'
+    test_path: 'data/quora-test-student.csv'
+    weight: 10
+  sts_dataset:
+    train_path: 'data/sts-train.csv'
+    val_path: 'data/sts-dev.csv'
+    test_path: 'data/sts-test-student.csv'
+    weight: 1
+
+  dataloader:
+    batch_size: 64
+    num_workers: 1
+
+bert_model:
+  hidden_size: 768
+  hidden_dropout_prob: 0.1
+  attention_dropout_prob: 0.1
+  bert_mode: 'finetune' # 'pretrain' or 'finetune'
+  local_files_only: False
+  weights_path: 'checkpoints/quora_pretrained.pt'
+
+train:
+  n_epochs: 6
+  lr: 0.00001
+  checkpoint_path: 'checkpoints/quora_pretrained.pt'
+  dataloader_mode: 'sequential' # 'exhaust' or 'sequential' or 'min' or 'continuous'
+  train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet'
+  triplet_weight: 0.3
+  triplet_dropout_rates:
+      quora: 0.1
+  skip_train_eval: 5 # number of times to skip evaluation of train datasets
+  max_train_size: null # null - reads the whole dataset, ~6050 - min
+  skip_optimizer_step: 1 # (1 to disable) do optimizer.step() every n-th time -- only for 'continuous'
+  add_cosine_loss: False
+  freeze_bert_steps: 0 # 0 to disable -- only for 'continuous
+  is_multi_batch: False # -- only for 'continuous
+
+pretrain:
+  n_epochs: 0
+  lr: 0.001
+  dataloader_mode: 'sequential'
+  skip_optimizer_step: 1
+
+post-train:
+  n_epochs: 0
+  lr: 0.001
+  dataloader_mode: 'sequential'
+  skip_optimizer_step: 1
+
+predict:
+  sst_prediction_path: 'predictions/sst_prediction.csv'
+  quora_prediction_path: 'predictions/quora_prediction.csv'
+  sts_prediction_path: 'predictions/sts_prediction.csv'
