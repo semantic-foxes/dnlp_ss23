@@ -50,7 +50,7 @@ train:
   max_train_size: null # null - reads the whole dataset, ~6050 - min
   skip_optimizer_step: 3 # (1 to disable) do optimizer.step() every n-th time -- only for 'continuous'
   add_cosine_loss: False
-  use_pearson_loss: True # for paraphrase regression
+  use_pearson_loss: False # for paraphrase regression
   freeze_bert_steps: 0 # 0 to disable -- only for 'continuous
   is_multi_batch: True # -- only for 'continuous
 
