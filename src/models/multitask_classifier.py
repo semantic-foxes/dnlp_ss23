@@ -51,27 +51,17 @@ class MultitaskBERT(nn.Module):
             raise AttributeError('Incorrect mode for BERT model. Should be'
                                  'either \'pretrain\' or \'finetune\'.')
 
-
-        self.sentiment_classifier = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size // 2),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size // 2, self.num_labels),
-        )
-        self.paraphrase_classifier = nn.Sequential(
-            nn.Linear(2*hidden_size, 2)
-        )
+        self.sentiment_classifier = nn.Linear(hidden_size, self.num_labels)
+        self.paraphrase_classifier = nn.Linear(2 * hidden_size, 2)
         self.paraphrase_regressor_1 = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(hidden_size // 2, hidden_size // 4),
             nn.ReLU(),
         )
         self.paraphrase_regressor_2 = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(hidden_size // 2, hidden_size // 4),
             nn.ReLU(),
         )
@@ -95,12 +85,11 @@ class MultitaskBERT(nn.Module):
         elif task == 'paraphrase_classifier':
             if input_ids_2 is None or attention_mask_2 is None:
                 raise AttributeError
-            
+
             result, *embeddings = self.predict_paraphrase(input_ids_1, attention_mask_1,
                                              input_ids_2, attention_mask_2)
             if return_embeddings:
                 return result, embeddings
-
 
         elif task == 'paraphrase_regressor':
             if input_ids_2 is None or attention_mask_2 is None:

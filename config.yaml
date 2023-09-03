@@ -2,9 +2,9 @@ seed: 11711
 use_cuda: True
 
 watcher:
-  type: null # null for no watcher
+  type: wandb # null for no watcher
   project_name: 'semantic_foxes_bert'
-  mode: 'offline' # "online", "offline" or "disabled"
+  mode: 'online' # "online", "offline" or "disabled"
 
 data:
   sst_dataset:
@@ -36,7 +36,7 @@ bert_model:
   weights_path: 'checkpoints/finetune_classifier.pt'
 
 train:
-  n_epochs: 1
+  n_epochs: 10
   lr: 0.00001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
@@ -53,14 +53,14 @@ train:
   is_multi_batch: False # -- only for 'continuous
 
 pretrain:
-  use: True
+  use: False
   n_epochs: 1
   lr: 0.001
   dataloader_mode: 'sequential'
   skip_optimizer_step: 0
 
 post-train:
-  use: True
+  use: False
   n_epochs: 1
   lr: 0.001
   dataloader_mode: 'sequential'

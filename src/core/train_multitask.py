@@ -207,7 +207,8 @@ def train_validation_loop_multitask(
     current_epoch = 0
     resulting_scores = []
 
-    logger.info('Starting training and validating the model.')
+    logger.info(f'Starting training and validating the model in {train_mode} mode on all the tasks.')
+
     epoch_train_state = None
     for _ in pbar:
         # Train

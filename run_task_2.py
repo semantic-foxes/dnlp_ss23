@@ -246,7 +246,7 @@ if __name__ == "__main__":
         if config_pretrain['n_epochs'] < 1:
             logger.warning('Pretrain mode called but the number of epochs is wrong.')
 
-        unfreezer.start()
+        model.bert.requires_grad_(False)
         optimizer_pre = AdamW(model.parameters(), lr=config_pretrain['lr'])
 
         logger.info(f'Starting *pre*train on all the tasks.')
@@ -256,7 +256,7 @@ if __name__ == "__main__":
             criterion=criteria,
             metric=metrics,
             train_loader=train_dataloaders,
-            train_eval_loader=train_dataloaders,
+            train_eval_loader=train_eval_dataloaders,
             val_loader=val_dataloaders,
             n_epochs=config_pretrain['n_epochs'],
             device=device,
@@ -275,9 +275,6 @@ if __name__ == "__main__":
         )
         load_state(model, device, config_train['checkpoint_path'])
 
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
-                f'in {train_mode} mode on all the tasks.')
-
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
     _, best_metric = train_validation_loop_multitask(
         model=model,
@@ -285,7 +282,7 @@ if __name__ == "__main__":
         criterion=criteria,
         metric=metrics,
         train_loader=train_dataloaders,
-        train_eval_loader=train_dataloaders,
+        train_eval_loader=train_eval_dataloaders,
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
         device=device,
@@ -308,7 +305,7 @@ if __name__ == "__main__":
         if config_post_train['n_epochs'] < 1:
             logger.warning('Pretrain mode called but the number of epochs is wrong.')
 
-        unfreezer.start()
+        model.bert.requires_grad_(False)
         optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
         load_state(model, device, config_train['checkpoint_path'])
 
@@ -319,7 +316,7 @@ if __name__ == "__main__":
             criterion=criteria,
             metric=metrics,
             train_loader=train_dataloaders,
-            train_eval_loader=train_dataloaders,
+            train_eval_loader=train_eval_dataloaders,
             val_loader=val_dataloaders,
             n_epochs=config_post_train['n_epochs'],
             device=device,
