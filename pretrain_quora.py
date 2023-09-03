@@ -20,7 +20,7 @@ from src.core.unfreezer import BasicGradualUnfreezer
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default='./configs/quora-config.yaml')
+    parser.add_argument("--config", type=str, default='./configs/quora-pretrain-config.yaml')
     parser.add_argument("--restore", action='store_true')
     parser.add_argument("--id", type=str, default='')
     parser.add_argument("--silent", action='store_false')
