@@ -30,7 +30,7 @@ python -m torch.utils.collect_env
 nvcc -V
 
 # Run the script:
-python -u run_task_2.py --silent
+python -u run_train.py --silent
 
 # Run the script with logger:
 #python -u train_with_logger.py -l ~/${SLURM_JOB_NAME}_${SLURM_JOB_ID}  -t True -p True -d True -s True -f True

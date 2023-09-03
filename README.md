@@ -40,7 +40,7 @@ The `config.yaml` file streamlines workflow by centralizing the model's paramete
 - For Multiple Task Training, run:
 
 ```python
-python3 run_task_2.py
+python3 run_train.py
 ```
 
 - For pretraining on `Quora`, run:
