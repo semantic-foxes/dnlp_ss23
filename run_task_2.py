@@ -79,11 +79,6 @@ if __name__ == "__main__":
         return_targets=True,
         nrows=config_train.get('max_eval_size')
     )
-    sst_test_dataset = SSTDataset(
-        config_sst['test_path'],
-        return_targets=False,
-        nrows=config_train.get('max_eval_size')
-    )
 
     quora_train_dataset = SentenceSimilarityDataset(
         config_quora['train_path'],
@@ -93,12 +88,6 @@ if __name__ == "__main__":
     quora_val_dataset = SentenceSimilarityDataset(
         config_quora['val_path'],
         return_targets=True,
-        nrows=config_train.get('max_eval_size')
-    )
-    quora_test_dataset = SentenceSimilarityDataset(
-        config_quora['test_path'],
-        return_targets=False,
-        index_col=False,
         nrows=config_train.get('max_eval_size')
     )
 
@@ -112,12 +101,6 @@ if __name__ == "__main__":
         config_sts['val_path'],
         binary_task=False,
         return_targets=True,
-        nrows=config_train.get('max_eval_size')
-    )
-    sts_test_dataset = SentenceSimilarityDataset(
-        config_sts['test_path'],
-        binary_task=False,
-        return_targets=False,
         nrows=config_train.get('max_eval_size')
     )
 
@@ -196,18 +179,6 @@ if __name__ == "__main__":
             num_workers=config_dataloader['num_workers'],
         )
         for x in [sst_val_dataset, quora_val_dataset, sts_val_dataset]
-    ]
-
-    test_dataloaders = [
-        DataLoader(
-            x,
-            shuffle=False,
-            collate_fn=x.collate_fn,
-            batch_size=config_dataloader['batch_size'],
-            num_workers=config_dataloader['num_workers'],
-        )
-        for x in [sst_test_dataset, quora_test_dataset, sts_test_dataset]
-        # the order of datasets must match the order in config.yaml (predictions save_path)
     ]
 
     logger.info('Creating the model')
@@ -351,7 +322,7 @@ if __name__ == "__main__":
 
     logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
                 f'all the tasks.')
-    
+
     evaluate_model_multitask(
         model=model,
         eval_dataloaders=val_dataloaders,
@@ -361,11 +332,4 @@ if __name__ == "__main__":
         cosine_loss=cosine_loss,
         verbose=args.silent,
         set_name='val',
-    )
-    
-    generate_predictions_multitask(
-        model=model,
-        device=device,
-        dataloaders=test_dataloaders,
-        filepaths=config_prediction.values()
     )

@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -10,6 +11,7 @@ from torch import nn
 def generate_predictions(
         model: nn.Module,
         dataloader: torch.utils.data.DataLoader,
+        predict_column_name: str,
         device: torch.device,
         dataloader_message: str = 'test',
 ) -> pd.DataFrame:
@@ -20,6 +22,7 @@ def generate_predictions(
     ----------
     model : nn.Module
     dataloader : torch.utils.data.Dataloader
+    predict_column_name : str
     device : torch.device
     dataloader_message : str
         The message to be put in the `tqdm` progress bar.
@@ -79,8 +82,10 @@ def generate_predictions(
         result += predictions.cpu().numpy().tolist()
 
     result = pd.DataFrame(
-        {'prediction': result},
-        index=dataloader.dataset.ids
+        {
+            'id': dataloader.dataset.ids,
+            f'{predict_column_name}': result
+        },
     )
 
     return result
@@ -90,17 +95,28 @@ def generate_predictions_multitask(
         model: nn.Module,
         device: torch.device,
         dataloaders: torch.utils.data.DataLoader,
+        predict_column_names: List[str],
         filepaths: List[str],
 ):
 
-    for test_loader, save_path in zip(dataloaders, filepaths):
+    for test_loader, save_path, predict_column_name \
+            in zip(dataloaders, filepaths, predict_column_names):
         predictions = generate_predictions(
             model=model,
             dataloader=test_loader,
+            predict_column_name=predict_column_name,
             device=device,
             dataloader_message=test_loader.dataset.task,
         )
 
-        predictions.to_csv(save_path)
+        np.savetxt(
+            save_path,
+            predictions,
+            delimiter=', ',
+            header=', '.join(predictions.columns.values),
+            fmt='%s',
+            comments='',
+            encoding=None
+        )
 
         
