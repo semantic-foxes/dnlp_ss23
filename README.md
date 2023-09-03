@@ -260,10 +260,10 @@ It was enhancing the performance, however Gradual unfreeze is working better.
 
 As a loss function for `STS` we use MSE loss by default. However, we can also use negative Pearson correlation as another loss, called PearsonLoss.
 
-PearsonLoss has a significant downside that the predictions are not forced to be in the original targets range `[0, 5]`.
+PearsonLoss has a significant downside that the predictions are not forced to be in the original targets range `[0,5]`.
 
-On the other hand, MSE turned out to be sensitive to predictions range: we stick with `[-5, 5]` range.
-Due to that during evaluation and prediction's generation phrase we clip predictions to the original targets range `[0, 5]`.
+On the other hand, MSE turned out to be sensitive to predictions range: we stick with `[-5,5]` range.
+Due to that during evaluation and prediction's generation phrase we clip predictions to the original targets range `[0,5]`.
 This clipping is known to reduce MSE loss as a projection.
 
 Generally, MSE loss produce better results.
