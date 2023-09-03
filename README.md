@@ -43,6 +43,12 @@ The `config.yaml` file streamlines workflow by centralizing the model's paramete
 python3 run_train.py
 ```
 
+- For generating prediction, run:
+
+```python
+python3 generate_predictions.py
+```
+
 - For pretraining on `Quora`, run:
 
 ```python
