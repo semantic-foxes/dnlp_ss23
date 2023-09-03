@@ -261,6 +261,37 @@ It was enhancing the performance, however Gradual unfreeze is working better.
 
 ## Experiments
 
+### Common knowledge
+- We used an unmodified (in terms of number of layers, etc.) BERT from huggingface.
+- We generally used `lr` around `1e-5` and `dropout=0.1` since these proved to be
+generally the best.
+- Once we made it to the more complex heads for SST and STS datasets, we started using them,
+so there are no experiments with simple heads.
+
+
+### Exhaust dataset with gradual unfreeze [Sergei Zakharov]
+
+Following the [Universal Language Model Fine-tuning](https://paperswithcode.com/method/ulmfit#:~:text=Universal%20Language%20Model%20Fine%2Dtuning%2C%20or%20ULMFiT%2C%20is%20an,LSTM%20architecture%20for%20its%20representations),
+we decided to make the gradual unfreeze for the BERT layers only. It turned out
+to boost the metrics up to `0.496`, `0.758`, `0.558` for SST, Quora and STS respectively
+for the modified cosine head.
+
+Furthermore, we saw that the train metrics were way too high compared to the val
+metrics and decided to try to counter that with increasing the dropout values
+up to 0.2. It turned out to work worse in general (this is actually true for all
+other experiments as well just like having `lr` around `1e-5` is a good thing)
+
+### Exhaust dataset with gradual unfreeze and scheduler [Sergei Zakharov]
+
+After confirming that the gradual unfreeze actually boosts the metrics,
+we decided to try using a scheduler as well. Using a simple `ExponentialLR`
+did not really prove itself to be a good option: though the initial metrics
+were a bit better, the resulting ones were off comparing to the original one
+(mainly for STS) being `0.497`, `0.769`, `0.514` for SST, Quora and STS respectively.
+
+For this experiment, we used the original `lr=0.00006` and `gamma=0.85` for the
+scheduler.
+
 ### MSE vs PearsonLoss [Danila Litskevich]
 
 As a loss function for `STS` we use MSE loss by default. However, we can also use negative Pearson correlation as another loss, called PearsonLoss.
