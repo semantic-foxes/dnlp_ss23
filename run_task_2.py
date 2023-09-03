@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # Special train modes require a specific collate function.
     train_mode = config_train['train_mode']
     if train_mode == 'contrastive':
-        exp_factor = config_train['exp_factor']
+        exp_factor = config_train.get('exp_factor', 2)
         quora_train_dataloader = DataLoader(
                 quora_train_dataset,
                 shuffle=True,
@@ -257,7 +257,6 @@ if __name__ == "__main__":
             val_loader=val_dataloaders,
             n_epochs=config_pretrain['n_epochs'],
             device=device,
-            unfreezer=None,
             watcher=watcher,
             verbose=args.silent,
             weights=weights,
@@ -319,7 +318,6 @@ if __name__ == "__main__":
             val_loader=val_dataloaders,
             n_epochs=config_post_train['n_epochs'],
             device=device,
-            unfreezer=None,
             watcher=watcher,
             verbose=args.silent,
             weights=weights,
