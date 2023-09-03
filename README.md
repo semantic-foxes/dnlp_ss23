@@ -110,13 +110,13 @@ The metric to test this dataset is Pearson correlation.
 
 We used `bert-base-uncased` BERT.
 
-### Data combination
+### Multitask trainig stategy
 
 Since 3 datasets have different amount of data, we can combine them differently for training purposes.
 There are several options for `dataloader_mode`:
 
 - `sequential` - traverse the whole dataset one after another (good for training with freezed BERT)
-- `continuos` - 'infinitely' iterate over datasets (one epoch is determined by the minimal length among datasets)
+- `continuos` - 'infinitely' iterate over datasets (one epoch is determined by the minimal length of datasets)
 - `exhaust` - choose batch randomly without replacements
 
 Additionally, there are several options to enhance behaviour of these combinations:
@@ -225,13 +225,18 @@ This specific feature seems to be of real importance since it provides a major
 boost on the metric. We tried other clipping strategies as well, but this is a
 heuristic that worked the best for us.
 
-### Multi-batch [Danila Litskevich]
+### Continuous mode with Multi-batch [Danila Litskevich]
 
 The idea is to sample from all datasets and produce one batch, which we call a 'multi-batch'.
 That is performed in `continuos` mode by providing skipping `3` steps of optimizer using `skip_optimizer_step`
 and setting `is_multi_batch` to true.
+
 Opposed to "Dilated" batches approach, 'multi-batch' ensures that on `3n`, `3n+1`, `3n+2` steps we would sample from all datasets,
 therefore creating a 'multi-batch'.
+
+Since the datasets have different amount of samples,
+`countinuous` mode allows to continue training by resetting an exhausted dataset without resetting others.
+One epoch is determined by the minimal length of datasets.
 
 Also, one can balance the amount of batches in a 'multi-batch' by providing corresponding `weight`'s.
 
@@ -268,6 +273,18 @@ This clipping is known to reduce MSE loss as a projection.
 
 Generally, MSE loss produce better results.
 
+### Additional pretrain on Quora [Danila Litskevich]
+
+Since `continuous` mode covers `SST` and `STS` datasets more offen than `Quora` due to their difference in size,
+we were underfitting on `Quora` and overfitting on others.
+
+We tried to mitigate that by providing corresponding `weight`'s.
+
+Another approach is to first pretrain the model on `Quora` and then use our regular procedure for training.
+
+That approach appeared to train on `SST` and `STS` datasets while preserving the quality on `Quora`.
+In the end, it produced the best results.
+
 ## Results
 
 | Model | SST | Quora | STS |
@@ -282,9 +299,13 @@ Generally, MSE loss produce better results.
 
 Using pretrained BERT with frozen weights, we used simple classifiers for SST and Quora datasets and a simple regressor for STS dataset.
 
+Configuration file: `configs/pretrain-config.yaml`.
+
 ### Finetune model
 
 Same approach as for Pretrain model, but now BERT weights are not frozen.
+
+Configuration file: `configs/finetune-config.yaml`.
 
 ### Exhaust model
 
@@ -294,14 +315,23 @@ The model that utilize `exhaust` mode.
 
 The model that utilize `continuous` mode.
 
+Configuration file: `config.yaml`.
+
 ### Continuous<sub>Quora</sub> model
 
 This is our best model which combines Continuous model with additional pretraining on `Quora`.
+
+Configuration file for pretrain on `Quora`: `configs/quora-pretrain-config.yaml`.
+
+Configuration file: `config.yaml`.
+
+To train the model, first run `pretrain_quora.py`, after that run `run_train.py`.
 
 ## Codebase Overview
 
 The repository has undergone significant changes. Here's a brief overview:
 
+- `configs`: Contains config files for training.
 - `src`: Contains shared code, further divided into:
   - `core`: Holds functions common to models like the training loop and prediction generation.
   - `datasets`: Houses all dataset classes. `SSTDataset` is for the SST task, while `SentenceSimilarityDataset` serves both Quora and SemEval datasets.
