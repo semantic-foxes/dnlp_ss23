@@ -2,7 +2,7 @@
 
 Team: G04 Semantic Foxes
 
-### Acknowledgements
+## Acknowledgements
 
 The project description, partial implementation, and scripts were adapted from the default final project for the Stanford [CS 224N class](https://web.stanford.edu/class/cs224n/) developed by Gabriel Poesia, John, Hewitt, Amelie Byun, John Cho, and their (large) team (Thank you!)
 
@@ -72,8 +72,7 @@ Additionally, there are several options to enhance behaviour of these combinatio
 
 - `weights` - determine how many batches to consider for each dataset (e.g. 1 from `SST`, 10 from `Quora` and 1 from `STS`).
 - `skip_optimizer_step` - allows to make an optimizer step every n-th times.
-- `is_multi_batch` - enforces choosing datasets in a way that
-during choosing times `3n`, `3n+1`, `3n+2` we draw all different datasets.
+- `is_multi_batch` - makes a 'multi-batch' from all datasets.
 
 ### Best metric selection
 
@@ -100,6 +99,8 @@ Also, there is option `freeze_bert_steps` to mix steps with freezed  and  gradua
 
 ### Scheduler
 
+We used a scheduler to decrease learning rate propogated to lower layers of BERT.
+
 ## Experiments
 
 | Model | SST | Quora | STS |
@@ -121,13 +122,13 @@ The project is developed in Python 3.8.
 
 - Follow `setup_gwdg.sh` to properly setup a conda environment and install dependencies.
 
-```
+```python
 source setup_gwdg.sh
 ```
 
 - Alternatively, to install necessary dependencies, run:
 
-```
+```python
 pip3 install -r requirements.txt
 ```
 
@@ -139,21 +140,27 @@ The `config.yaml` file streamlines workflow by centralizing the model's paramete
 
 ## Execution
 
-- For Sentiment Classification Task, run:
-
-```
-python3 run_task_1.py
-```
-
 - For Multiple Task Training, run:
 
-```
+```python
 python3 run_task_2.py
+```
+
+- For pretraining on `Quora`, run:
+
+```python
+python3 pretrain_quora.py
+```
+
+- For hyperparameter_search, run:
+
+```python
+python3 pretrain_quora.py
 ```
 
 - For Tests, run:
 
-```
+```python
 python3 -m tests.optimizer_test
 python3 -m tests.sanity_check
 ```
@@ -179,7 +186,7 @@ The repository has undergone significant changes. Here's a brief overview:
   1. Add `src` to the `PYTHONPATH`.
   2. Execute:
 
-    ```
+    ```python
     python3 tests/<test_filename>
     ```
 
