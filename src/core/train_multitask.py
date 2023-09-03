@@ -193,7 +193,8 @@ def train_validation_loop_multitask(
         logger.error(message)
         raise NotImplementedError(message)
 
-    unfreezer.start()
+    if unfreezer is not None:
+        unfreezer.start()
 
     # Initialization
     best_metric = {
