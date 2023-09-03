@@ -289,7 +289,7 @@ if __name__ == "__main__":
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
     scheduler = ExponentialLR(
         optimizer,
-        gamma=1.2
+        gamma=0.85,
     )
     _, best_metric = train_validation_loop_multitask(
         model=model,

@@ -36,10 +36,10 @@ bert_model:
   weights_path: 'checkpoints/finetune_classifier.pt'
 
 train:
-  n_epochs: 1
-  lr: 0.00001
+  n_epochs: 10
+  lr: 0.00006
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
-  dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
+  dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet'
   triplet_weight: 0.3
   triplet_dropout_rates:

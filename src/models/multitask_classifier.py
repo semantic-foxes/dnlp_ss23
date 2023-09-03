@@ -144,7 +144,7 @@ class MultitaskBERT(nn.Module):
         if not self.training and not self.use_pearson_loss:
             # projection usually decreases error for MSE
             # also it maps predictions to the target interval [0,5]
-            predictions = torch.clip(predictions, 0, 5)
+            predictions = torch.clip(result, 0, 5)
 
         return result.flatten()
 

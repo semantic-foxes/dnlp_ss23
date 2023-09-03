@@ -180,6 +180,7 @@ def train_one_batch_triplet(
             + 0.5 * (1 - weight) * negative_loss)
     return loss
 
+
 def train_one_batch_multitask(
         model: nn.Module,
         batch: Union[torch.tensor, list[torch.tensor]],
@@ -200,7 +201,7 @@ def train_one_batch_multitask(
         loss = train_one_batch_contrastive(batch, criterion, device, model, task, weight=weight)
     elif train_mode == 'triplet':
         weight = overall_config['train'].get('triplet_weight', 0.5)
-        loss = train_one_batch_triplet(batch, criterion, device, model, task)
+        loss = train_one_batch_triplet(batch, criterion, device, model, task, weight=weight)
     else:
         raise NotImplementedError(f"train_mode={train_mode} is not supported")
 

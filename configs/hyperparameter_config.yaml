@@ -10,9 +10,9 @@ bert_model:
 
 train:
   n_epochs:
-    low: 4
-    high: 10
+    low: 5
+    high: 15
   lr:
-    low: 0.00001
-    high: 0.01
+    low: 0.000001
+    high: 0.001
 

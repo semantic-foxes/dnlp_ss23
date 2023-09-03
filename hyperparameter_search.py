@@ -143,7 +143,7 @@ def main():
     weights = [x['weight'] for x in (config_sst, config_quora, config_sts)]
 
     # Hyperparameter config handling
-    hyperparameter_config_path = 'hyperparameter_config.yaml'
+    hyperparameter_config_path = 'configs/hyperparameter_config.yaml'
     with open(hyperparameter_config_path, 'r') as f:
         HYPERPARAMETER_CONFIG = yaml.load(f, Loader=yaml.FullLoader)
     try:
