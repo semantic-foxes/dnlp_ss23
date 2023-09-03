@@ -16,7 +16,7 @@ data:
     train_path: 'data/quora-train.csv'
     val_path: 'data/quora-dev.csv'
     test_path: 'data/quora-test-student.csv'
-    weight: 10
+    weight: 2
   sts_dataset:
     train_path: 'data/sts-train.csv'
     val_path: 'data/sts-dev.csv'
@@ -38,17 +38,17 @@ bert_model:
 restore: False
 
 train:
-  n_epochs: 10
+  n_epochs: 26
   lr: 0.00006
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
-  dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
+  dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet'
   triplet_weight: 0.3
   triplet_dropout_rates:
       quora: 0.1
-  skip_train_eval: 2 # number of times to skip evaluation of train datasets
+  skip_train_eval: 5 # number of times to skip evaluation of train datasets
   max_train_size: null # null - reads the whole dataset, ~6050 - min
-  skip_optimizer_step: 1 # (1 to disable) do optimizer.step() every n-th time -- only for 'continuous'
+  skip_optimizer_step: 3 # (1 to disable) do optimizer.step() every n-th time -- only for 'continuous'
   add_cosine_loss: False
   use_pearson_loss: False # for paraphrase regression
   freeze_bert_steps: 0 # 0 to disable -- only for 'continuous
