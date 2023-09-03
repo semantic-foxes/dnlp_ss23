@@ -55,7 +55,6 @@ class MultitaskBERT(nn.Module):
         self.sentiment_classifier = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(hidden_size // 2, self.num_labels),
         )
         self.paraphrase_classifier = nn.Sequential(
@@ -64,14 +63,12 @@ class MultitaskBERT(nn.Module):
         self.paraphrase_regressor_1 = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(hidden_size // 2, hidden_size // 4),
             nn.ReLU(),
         )
         self.paraphrase_regressor_2 = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(hidden_size // 2, hidden_size // 4),
             nn.ReLU(),
         )
@@ -139,6 +136,7 @@ class MultitaskBERT(nn.Module):
         embedding_processed_1 = self.paraphrase_regressor_1(bert_output_1)
         embedding_processed_2 = self.paraphrase_regressor_2(bert_output_2)
         # Since the target is 0-5 in this task as well :/
-        result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 2.5 + 2.5
+        # Though the result is in [-5,5], we found out it to produce better outcome
+        result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 5
         return result.flatten()
 
