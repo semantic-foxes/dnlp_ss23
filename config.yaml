@@ -39,7 +39,7 @@ train:
   n_epochs: 1
   lr: 0.00001
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
-  dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
+  dataloader_mode: 'continuous' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet'
   triplet_weight: 0.3
   triplet_dropout_rates:
@@ -49,7 +49,7 @@ train:
   skip_optimizer_step: 1 # (1 to disable) do optimizer.step() every n-th time -- only for 'continuous'
   add_cosine_loss: False
   use_pearson_loss: False # for paraphrase regression
-  freeze_bert_steps: 0 # -- only for 'continuous
+  freeze_bert_steps: 0 # 0 to disable -- only for 'continuous
   is_multi_batch: False # -- only for 'continuous
 
 pretrain:
