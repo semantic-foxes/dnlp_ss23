@@ -36,12 +36,12 @@ def pretrain_validation_loop_multitask(
     """
     best_metric = {**best_metric}
 
-    try:
-        load_state(model, device, save_best_path)
-    except:
-        logger.warning(f'Failed to load model from {save_best_path}.')
-
     for i in range(len(metric)):
+        try:
+            load_state(model, device, save_best_path)
+        except:
+            logger.info(f'failed to load model from {save_best_path}')
+
         result, best_metric = train_validation_loop_multitask(
             model=model,
             optimizer=optimizer,

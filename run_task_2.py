@@ -242,21 +242,18 @@ if __name__ == "__main__":
     weights = [x['weight'] for x in (config_sst, config_quora, config_sts)]
 
     # Pretrain
-    if config_pretrain['use']:
-        if config_pretrain['n_epochs'] < 1:
-            logger.warning('Pretrain mode called but the number of epochs is wrong.')
-
-        unfreezer.start()
+    if config_pretrain['n_epochs'] > 0:
+        model.bert.requires_grad_(False)
         optimizer_pre = AdamW(model.parameters(), lr=config_pretrain['lr'])
 
         logger.info(f'Starting *pre*train on all the tasks.')
-        _, best_metric = train_validation_loop_multitask(
+        _, best_metric = pretrain_validation_loop_multitask(
             model=model,
             optimizer=optimizer_pre,
             criterion=criteria,
             metric=metrics,
             train_loader=train_dataloaders,
-            train_eval_loader=train_dataloaders,
+            train_eval_loader=train_eval_dataloaders,
             val_loader=val_dataloaders,
             n_epochs=config_pretrain['n_epochs'],
             device=device,
@@ -271,13 +268,14 @@ if __name__ == "__main__":
             skip_train_eval=config_train['skip_train_eval'],
             best_metric=best_metric,
             skip_optimizer_step=config_pretrain['skip_optimizer_step'],
-            cosine_loss=None
+            cosine_loss=None,
         )
         load_state(model, device, config_train['checkpoint_path'])
 
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
                 f'in {train_mode} mode on all the tasks.')
 
+    model.bert.requires_grad_(True)
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
     _, best_metric = train_validation_loop_multitask(
         model=model,
@@ -285,7 +283,7 @@ if __name__ == "__main__":
         criterion=criteria,
         metric=metrics,
         train_loader=train_dataloaders,
-        train_eval_loader=train_dataloaders,
+        train_eval_loader=train_eval_dataloaders,
         val_loader=val_dataloaders,
         n_epochs=config_train['n_epochs'],
         device=device,
@@ -300,26 +298,24 @@ if __name__ == "__main__":
         skip_train_eval=config_train['skip_train_eval'],
         best_metric=best_metric,
         skip_optimizer_step=config_train['skip_optimizer_step'],
-        cosine_loss=None
+        cosine_loss=cosine_loss,
     )
 
     # Post-train
-    if config_post_train['use']:
-        if config_post_train['n_epochs'] < 1:
-            logger.warning('Pretrain mode called but the number of epochs is wrong.')
+    if config_post_train['n_epochs'] > 0:
 
-        unfreezer.start()
+        model.bert.requires_grad_(False)
         optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
         load_state(model, device, config_train['checkpoint_path'])
 
         logger.info(f'Starting *post*-train on all the tasks.')
-        _, best_metric = train_validation_loop_multitask(
+        _, best_metric = pretrain_validation_loop_multitask(
             model=model,
             optimizer=optimizer_post,
             criterion=criteria,
             metric=metrics,
             train_loader=train_dataloaders,
-            train_eval_loader=train_dataloaders,
+            train_eval_loader=train_eval_dataloaders,
             val_loader=val_dataloaders,
             n_epochs=config_post_train['n_epochs'],
             device=device,
@@ -334,7 +330,7 @@ if __name__ == "__main__":
             skip_train_eval=config_train['skip_train_eval'],
             best_metric=best_metric,
             skip_optimizer_step=config_post_train['skip_optimizer_step'],
-            cosine_loss=None
+            cosine_loss=None,
         )
 
     load_state(model, device, config_train['checkpoint_path'])
