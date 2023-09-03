@@ -53,13 +53,13 @@ train:
   is_multi_batch: False # -- only for 'continuous
 
 pretrain:
-  n_epochs: 1
+  n_epochs: 0
   lr: 0.001
   dataloader_mode: 'sequential'
   skip_optimizer_step: 1
 
 post-train:
-  n_epochs: 1
+  n_epochs: 0
   lr: 0.001
   dataloader_mode: 'sequential'
   skip_optimizer_step: 1
