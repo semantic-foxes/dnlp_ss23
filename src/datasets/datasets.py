@@ -5,12 +5,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
 from tokenizer import BertTokenizer
-
-
-tqdm.pandas()
-
 
 class SSTDataset(Dataset):
     def __init__(
@@ -148,13 +143,12 @@ class SentenceSimilarityDataset(Dataset):
 
     @staticmethod
     def _mask(dropout_rate, token_ids, attention_masks, token_type_ids):
-            # TODO: special_tokens_mask (IMPORTANT)
-            # (add &~special_tokens_mask; see DataCollatorForLanguageModeling)
             dropout_mask = torch.empty(
                 token_ids.shape, device=token_ids.device, dtype=int
             ).bernoulli_(1 - dropout_rate)
 
             # (c) Lingyu Zhang
+            # https://discuss.pytorch.org/t/how-can-i-move-all-zeroes-to-end-of-array/43092/5
             def mask_shift(tensor, mask):
                 masked = tensor * mask
                 shifted = torch.gather(
@@ -242,7 +236,6 @@ class SentenceSimilarityDataset(Dataset):
         def mask_encode(sentences):
             return self._mask(dropout_rate, *self._encode(sentences.tolist()))
 
-        # TODO: rewrite to return tuple, remove code triplication
         (token_ids_anchor,
          attention_masks_anchor,
          token_type_ids_anchor) = mask_encode(sentences_1)
@@ -251,7 +244,6 @@ class SentenceSimilarityDataset(Dataset):
          attention_masks_positive,
          token_type_ids_positive) = mask_encode(sentences_1)
 
-        # TODO: May be slower than rolling after mask_encode
         (token_ids_negative,
          attention_masks_negative,
          token_type_ids_negative) = mask_encode(np.roll(sentences_1, -1))
@@ -279,12 +271,6 @@ class SentenceSimilarityDataset(Dataset):
         """
         return partial(self._collate_fn_triplet_unsupervised, dropout_rate)
 
-    def _collate_fn_triplet_supervised_v1(self, dropout_rate, batch_data):
-        # TODO:
-        # for positive pairs pos = sentences_2, neg = roll.
-        # for negative pairs pos = dropout(sentences_1), neg = roll.
-        pass
-
     def _collate_fn_triplet(self, dropout_rate, batch_data):
         sentences_1 = np.array([x[0] for x in batch_data], dtype=object)
         sentences_2 = np.array([x[1] for x in batch_data], dtype=object)
@@ -302,7 +288,6 @@ class SentenceSimilarityDataset(Dataset):
             return self._mask(dropout_rate, *self._encode(sentences.tolist(),
                                                           padding='max_length', max_length=40))
 
-        # TODO: slow
         (token_ids_anchor,
          attention_masks_anchor,
          token_type_ids_anchor) = self._encode(sentences_1.tolist(),
@@ -311,7 +296,6 @@ class SentenceSimilarityDataset(Dataset):
         sentences_1_masked_encoded = mask_encode(sentences_1)
         sentences_2_encoded = self._encode(sentences_2.tolist(),
                                            padding='max_length', max_length=40)
-        # TODO: slow
         sentences_2_roll = mask_encode(np.roll(sentences_1, -1))
 
         target_mask = (targets != 0).unsqueeze(1)
@@ -339,10 +323,11 @@ class SentenceSimilarityDataset(Dataset):
 
     def collate_fn_triplet(self, dropout_rate):
         """ Returns triplets of the following form:
-        anchor = sentences_1
-        positive = sentences_2 for positive pairs,
+        anchor: sentences_1
+        positive: sentences_2 for positive pairs,
                    dropout(sentences_1) for negative pairs
-        negative = roll(sentences_2) for positive pairs
+        negative = shifted sentences_2 for positive pairs,
                    sentences_2 for negative pairs
         """
         return partial(self._collate_fn_triplet, dropout_rate)
+
