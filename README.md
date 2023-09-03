@@ -146,12 +146,16 @@ for `Quora`.
 
 The idea is to sample from all datasets and produce one batch, which we call a 'multi-batch'.
 That is performed in `continuos` mode by providing skipping 3 steps of optimizer using `skip_optimizer_step`
-and setting `is_multi_batch` to true
+and setting `is_multi_batch` to true.
+Also one can balance the amount of batches in a 'multi-batch' by providing corresponding `weight`'s.
 
-### Additional pretrain [Danila Litskevich]
+This approach is robust and performing well with other improvements, in particular with an additional pretrain on `Quora`.
 
-Since we have 10 times more data for `Quora`, we can use it to pretrain our BERT without overfitting.
-Futher finetuning training
+### Additional pretrain on `Quora` [Danila Litskevich]
+
+Since we have 10 times more data for `Quora` than for other datasets, we can use it to pretrain our BERT without overfitting during further finetuning.
+
+Multi-batch approach turned out to preserve same good performance for `Quora` during finetuning while also achieving great results for other datasets.
 
 ### [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html) [Danila Litskevich]
 
@@ -159,7 +163,7 @@ Futher finetuning training
 
 ### Mix freeze/unfreeze steps [Danila Litskevich]
 
-Another possible way to regularize our is to mix steps with freezed and unfreezed BERT.
+Another possible way to regularize our model is to mix optimization steps freezing and unfreezing BERT.
 That behaviour is controlled by `freeze_bert_steps`.
 
 It was enhancing the performance, however Gradual unfreeze is working better.
