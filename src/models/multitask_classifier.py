@@ -136,6 +136,7 @@ class MultitaskBERT(nn.Module):
         embedding_processed_1 = self.paraphrase_regressor_1(bert_output_1)
         embedding_processed_2 = self.paraphrase_regressor_2(bert_output_2)
         # Since the target is 0-5 in this task as well :/
+        # Though the result is in [-5,5], we found out it to produce better outcome
         result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 5
         return result.flatten()
 
