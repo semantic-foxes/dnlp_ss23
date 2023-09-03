@@ -4,11 +4,10 @@ import wandb
 
 from torch.utils.data import DataLoader
 from torch import nn
-from torch.optim.lr_scheduler import ExponentialLR
-
 from src.core.evaluation_multitask import evaluate_model_multitask
 from src.core.pretrain_multitask import pretrain_validation_loop_multitask
 from src.metrics.regression_metrics import pearson_correlation_loss
+
 from src.models import MultitaskBERT
 from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
@@ -21,7 +20,7 @@ from src.core.unfreezer import BasicGradualUnfreezer
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default='config.yaml')
+    parser.add_argument("--config", type=str, default='./configs/quora-config.yaml')
     parser.add_argument("--restore", action='store_true')
     parser.add_argument("--id", type=str, default='')
     parser.add_argument("--silent", action='store_false')
@@ -69,21 +68,6 @@ if __name__ == "__main__":
         raise NotImplementedError(message)
 
     # Create datasets
-    sst_train_dataset = SSTDataset(
-        config_sst['train_path'],
-        return_targets=True,
-        nrows=config_train.get('max_train_size'),
-    )
-    sst_val_dataset = SSTDataset(
-        config_sst['val_path'],
-        return_targets=True,
-        nrows=config_train.get('max_eval_size')
-    )
-    sst_test_dataset = SSTDataset(
-        config_sst['test_path'],
-        return_targets=False,
-        nrows=config_train.get('max_eval_size')
-    )
 
     quora_train_dataset = SentenceSimilarityDataset(
         config_quora['train_path'],
@@ -95,49 +79,10 @@ if __name__ == "__main__":
         return_targets=True,
         nrows=config_train.get('max_eval_size')
     )
-    quora_test_dataset = SentenceSimilarityDataset(
-        config_quora['test_path'],
-        return_targets=False,
-        index_col=False,
-        nrows=config_train.get('max_eval_size')
-    )
 
-    sts_train_dataset = SentenceSimilarityDataset(
-        config_sts['train_path'],
-        binary_task=False,
-        return_targets=True,
-        nrows=config_train.get('max_train_size'),
-    )
-    sts_val_dataset = SentenceSimilarityDataset(
-        config_sts['val_path'],
-        binary_task=False,
-        return_targets=True,
-        nrows=config_train.get('max_eval_size')
-    )
-    sts_test_dataset = SentenceSimilarityDataset(
-        config_sts['test_path'],
-        binary_task=False,
-        return_targets=False,
-        nrows=config_train.get('max_eval_size')
-    )
 
     # Create train dataloaders
-    sst_train_dataloader = DataLoader(
-        sst_train_dataset,
-        shuffle=True,
-        drop_last=True,
-        collate_fn=sst_train_dataset.collate_fn,
-        batch_size=config_dataloader['batch_size'],
-        num_workers=config_dataloader['num_workers'],
-    )
-    sts_train_dataloader = DataLoader(
-        sts_train_dataset,
-        shuffle=True,
-        drop_last=True,
-        collate_fn=sts_train_dataset.collate_fn,
-        batch_size=config_dataloader['batch_size'],
-        num_workers=config_dataloader['num_workers'],
-    )
+
     quora_train_eval_dataloader = DataLoader(
         quora_train_dataset,
         shuffle=True,
@@ -148,9 +93,7 @@ if __name__ == "__main__":
     )
 
     train_eval_dataloaders = [
-        sst_train_dataloader,
         quora_train_eval_dataloader,
-        sts_train_dataloader
     ]
 
     # Special train modes require a specific collate function.
@@ -182,9 +125,7 @@ if __name__ == "__main__":
         quora_train_dataloader = quora_train_eval_dataloader
 
     train_dataloaders = [
-        sst_train_dataloader,
         quora_train_dataloader,
-        sts_train_dataloader
     ]
 
     val_dataloaders = [
@@ -195,20 +136,9 @@ if __name__ == "__main__":
             batch_size=config_dataloader['batch_size'],
             num_workers=config_dataloader['num_workers'],
         )
-        for x in [sst_val_dataset, quora_val_dataset, sts_val_dataset]
+        for x in [quora_val_dataset,]
     ]
 
-    test_dataloaders = [
-        DataLoader(
-            x,
-            shuffle=False,
-            collate_fn=x.collate_fn,
-            batch_size=config_dataloader['batch_size'],
-            num_workers=config_dataloader['num_workers'],
-        )
-        for x in [sst_test_dataset, quora_test_dataset, sts_test_dataset]
-        # the order of datasets must match the order in config.yaml (predictions save_path)
-    ]
 
     logger.info('Creating the model')
     model = MultitaskBERT(
@@ -218,17 +148,13 @@ if __name__ == "__main__":
         hidden_size=config_bert['hidden_size'],
         hidden_dropout_prob=config_bert['hidden_dropout_prob'],
         attention_dropout_prob=config_bert['attention_dropout_prob'],
-        use_pearson_loss=config_train['use_pearson_loss'],
     )
     model = model.to(device)
     unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
 
-    metrics = [accuracy, accuracy, pearson_correlation]
+    metrics = [accuracy,]
 
-    if config_train['use_pearson_loss']:
-        criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation_loss]
-    else:
-        criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
+    criteria = [nn.CrossEntropyLoss(),]
 
     if config_train['add_cosine_loss']:
         cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
@@ -236,61 +162,17 @@ if __name__ == "__main__":
         cosine_loss = None
 
     best_metric = {}
-    if args.restore or CONFIG.get('restore'):
+    if args.restore:
         load_state(model, device, config_bert['weights_path'])
-        best_scores = evaluate_model_multitask(
-            model=model,
-            eval_dataloaders=val_dataloaders,
-            device=device,
-            metrics=metrics,
-            criterions=criteria,
-            cosine_loss=cosine_loss,
-            verbose=args.silent,
-            set_name='val',
-        )
+        best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
         best_metric = best_scores['metric']
 
-    weights = [x['weight'] for x in (config_sst, config_quora, config_sts)]
-
-    # Pretrain
-    if config_pretrain['n_epochs'] > 0:
-        model.bert.requires_grad_(False)
-        optimizer_pre = AdamW(model.parameters(), lr=config_pretrain['lr'])
-
-        logger.info(f'Starting *pre*train on all the tasks.')
-        _, best_metric = pretrain_validation_loop_multitask(
-            model=model,
-            optimizer=optimizer_pre,
-            criterion=criteria,
-            metric=metrics,
-            train_loader=train_dataloaders,
-            train_eval_loader=train_eval_dataloaders,
-            val_loader=val_dataloaders,
-            n_epochs=config_pretrain['n_epochs'],
-            device=device,
-            watcher=watcher,
-            verbose=args.silent,
-            weights=weights,
-            save_best_path=config_train['checkpoint_path'],
-            overall_config=CONFIG,
-            dataloader_mode=config_pretrain['dataloader_mode'],
-            train_mode=train_mode,
-            skip_train_eval=config_train['skip_train_eval'],
-            best_metric=best_metric,
-            skip_optimizer_step=config_pretrain['skip_optimizer_step'],
-            cosine_loss=None,
-        )
-        load_state(model, device, config_train['checkpoint_path'])
 
     logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
                 f'in {train_mode} mode on all the tasks.')
 
     model.bert.requires_grad_(True)
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
-    scheduler = ExponentialLR(
-        optimizer,
-        gamma=1.2
-    )
     _, best_metric = train_validation_loop_multitask(
         model=model,
         optimizer=optimizer,
@@ -302,10 +184,8 @@ if __name__ == "__main__":
         n_epochs=config_train['n_epochs'],
         device=device,
         unfreezer=unfreezer,
-        scheduler=scheduler,
         watcher=watcher,
         verbose=args.silent,
-        weights=weights,
         save_best_path=config_train['checkpoint_path'],
         overall_config=CONFIG,
         dataloader_mode=config_train['dataloader_mode'],
@@ -315,37 +195,6 @@ if __name__ == "__main__":
         skip_optimizer_step=config_train['skip_optimizer_step'],
         cosine_loss=cosine_loss,
     )
-
-    # Post-train
-    if config_post_train['n_epochs'] > 0:
-
-        model.bert.requires_grad_(False)
-        optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
-        load_state(model, device, config_train['checkpoint_path'])
-
-        logger.info(f'Starting *post*-train on all the tasks.')
-        _, best_metric = pretrain_validation_loop_multitask(
-            model=model,
-            optimizer=optimizer_post,
-            criterion=criteria,
-            metric=metrics,
-            train_loader=train_dataloaders,
-            train_eval_loader=train_eval_dataloaders,
-            val_loader=val_dataloaders,
-            n_epochs=config_post_train['n_epochs'],
-            device=device,
-            watcher=watcher,
-            verbose=args.silent,
-            weights=weights,
-            save_best_path=config_train['checkpoint_path'],
-            overall_config=CONFIG,
-            dataloader_mode=config_post_train['dataloader_mode'],
-            train_mode=train_mode,
-            skip_train_eval=config_train['skip_train_eval'],
-            best_metric=best_metric,
-            skip_optimizer_step=config_post_train['skip_optimizer_step'],
-            cosine_loss=None,
-        )
 
     load_state(model, device, config_train['checkpoint_path'])
 
@@ -363,9 +212,3 @@ if __name__ == "__main__":
         set_name='val',
     )
     
-    generate_predictions_multitask(
-        model=model,
-        device=device,
-        dataloaders=test_dataloaders,
-        filepaths=config_prediction.values()
-    )
