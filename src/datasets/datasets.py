@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm
 from tokenizer import BertTokenizer
+
 
 class SSTDataset(Dataset):
     def __init__(
@@ -143,23 +143,23 @@ class SentenceSimilarityDataset(Dataset):
 
     @staticmethod
     def _mask(dropout_rate, token_ids, attention_masks, token_type_ids):
-            dropout_mask = torch.empty(
-                token_ids.shape, device=token_ids.device, dtype=int
-            ).bernoulli_(1 - dropout_rate)
+        dropout_mask = torch.empty(
+            token_ids.shape, device=token_ids.device, dtype=int
+        ).bernoulli_(1 - dropout_rate)
 
-            # (c) Lingyu Zhang
-            # https://discuss.pytorch.org/t/how-can-i-move-all-zeroes-to-end-of-array/43092/5
-            def mask_shift(tensor, mask):
-                masked = tensor * mask
-                shifted = torch.gather(
-                    masked, 1,
-                    masked.ne(0).argsort(dim=1, descending=True, stable=True)
-                )
-                return shifted
-            token_ids = mask_shift(token_ids, dropout_mask)
-            attention_masks = mask_shift(attention_masks, dropout_mask)
-            token_type_ids = mask_shift(token_type_ids, dropout_mask)
-            return token_ids, attention_masks, token_type_ids
+        # (c) Lingyu Zhang
+        # https://discuss.pytorch.org/t/how-can-i-move-all-zeroes-to-end-of-array/43092/5
+        def mask_shift(tensor, mask):
+            masked = tensor * mask
+            shifted = torch.gather(
+                masked, 1,
+                masked.ne(0).argsort(dim=1, descending=True, stable=True)
+            )
+            return shifted
+        token_ids = mask_shift(token_ids, dropout_mask)
+        attention_masks = mask_shift(attention_masks, dropout_mask)
+        token_type_ids = mask_shift(token_type_ids, dropout_mask)
+        return token_ids, attention_masks, token_type_ids
 
     def collate_fn(self, batch_data):
         sentences_1 = [x[0] for x in batch_data]
