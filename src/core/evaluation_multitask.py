@@ -105,8 +105,6 @@ def evaluate_model_multitask(
                 targets = targets.to(device)
 
                 predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-                # projection usually decreases error
-                predictions = torch.clip(predictions, 0, 5)
 
             else:
                 raise NotImplementedError

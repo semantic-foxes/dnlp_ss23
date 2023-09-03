@@ -20,11 +20,13 @@ class MultitaskBERT(nn.Module):
             hidden_dropout_prob: float = 0.1,
             attention_dropout_prob: float = 0.1,
             num_attention_heads: int = 12,
-            num_bert_layers: int = 12
+            num_bert_layers: int = 12,
+            use_pearson_loss: bool = False,
     ):
         super(MultitaskBERT, self).__init__()
 
         self.num_labels = num_labels
+        self.use_pearson_loss = use_pearson_loss
         self.bert = BertModel.from_pretrained(
             model_name=bert_model_name,
             local_files_only=local_files_only,
@@ -136,6 +138,13 @@ class MultitaskBERT(nn.Module):
         embedding_processed_1 = self.paraphrase_regressor_1(bert_output_1)
         embedding_processed_2 = self.paraphrase_regressor_2(bert_output_2)
         # Since the target is 0-5 in this task as well :/
+        # Though the result is in [-5,5], we found out it to produce better outcome
         result = self.paraphrase_decision(embedding_processed_1, embedding_processed_2) * 5
+
+        if not self.training and not self.use_pearson_loss:
+            # projection usually decreases error for MSE
+            # also it maps predictions to the target interval [0,5]
+            predictions = torch.clip(predictions, 0, 5)
+
         return result.flatten()
 

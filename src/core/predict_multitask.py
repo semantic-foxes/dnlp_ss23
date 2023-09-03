@@ -73,7 +73,7 @@ def generate_predictions(
             attention_masks_2 = attention_masks_2.to(device)
 
             predictions = model(task, ids_1, attention_masks_1, ids_2, attention_masks_2)
-
+            
         else:
             raise NotImplementedError
         result += predictions.cpu().numpy().tolist()
