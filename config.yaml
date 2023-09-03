@@ -43,7 +43,6 @@ train:
   train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet'
   triplet_weight: 0.3
   triplet_dropout_rates:
-      sts: 0.2
       quora: 0.1
   skip_train_eval: 2 # number of times to skip evaluation of train datasets
   max_train_size: null # null - reads the whole dataset, ~6050 - min

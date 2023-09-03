@@ -120,7 +120,7 @@ if __name__ == "__main__":
         nrows=config_train.get('max_eval_size')
     )
 
-    # Create dataloaders
+    # Create train dataloaders
     sst_train_dataloader = DataLoader(
         sst_train_dataset,
         shuffle=True,
@@ -129,52 +129,62 @@ if __name__ == "__main__":
         batch_size=config_dataloader['batch_size'],
         num_workers=config_dataloader['num_workers'],
     )
+    sts_train_dataloader = DataLoader(
+        sts_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=sts_train_dataset.collate_fn,
+        batch_size=config_dataloader['batch_size'],
+        num_workers=config_dataloader['num_workers'],
+    )
+    quora_train_eval_dataloader = DataLoader(
+        quora_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=quora_train_dataset.collate_fn,
+        batch_size=config_dataloader['batch_size'],
+        num_workers=config_dataloader['num_workers'],
+    )
 
-    train_eval_dataloaders = [sst_train_dataloader] + [
-        DataLoader(
-            x,
-            shuffle=True,
-            drop_last=True,
-            collate_fn=x.collate_fn,
-            batch_size=config_dataloader['batch_size'],
-            num_workers=config_dataloader['num_workers'],
-        )
-        for x in [quora_train_dataset, sts_train_dataset]
+    train_eval_dataloaders = [
+        sst_train_dataloader,
+        quora_train_eval_dataloader,
+        sts_train_dataloader
     ]
 
     # Special train modes require a specific collate function.
     train_mode = config_train['train_mode']
     if train_mode == 'contrastive':
         exp_factor = config_train['exp_factor']
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
+        quora_train_dataloader = DataLoader(
+                quora_train_dataset,
                 shuffle=True,
                 drop_last=True,
-                collate_fn=x.collate_fn_contrastive(exp_factor),
+                collate_fn=quora_train_dataset.collate_fn_contrastive(exp_factor),
                 batch_size=config_dataloader['batch_size'],
                 num_workers=config_dataloader['num_workers'],
             )
-            for x in [quora_train_dataset, sts_train_dataset]
-        ]
 
     elif train_mode == 'triplet':
         dropout_quora = config_train['triplet_dropout_rates']['quora']
-        dropout_sts = config_train['triplet_dropout_rates']['sts']
 
-        train_dataloaders = [sst_train_dataloader, ] + [
-            DataLoader(
-                x,
+        quora_train_dataloader = DataLoader(
+                quora_train_dataset,
                 shuffle=True,
                 drop_last=True,
-                collate_fn=x.collate_fn_triplet(rate),
+                collate_fn=quora_train_dataset.collate_fn_triplet(dropout_quora),
                 batch_size=config_dataloader['batch_size'],
                 num_workers=config_dataloader['num_workers'],
             )
-            for x, rate in [(quora_train_dataset, dropout_quora), (sts_train_dataset, dropout_sts)]
-        ]
+
     else:
-        train_dataloaders = train_eval_dataloaders
+        quora_train_dataloader = quora_train_eval_dataloader
+
+    train_dataloaders = [
+        sst_train_dataloader,
+        quora_train_dataloader,
+        sts_train_dataloader
+    ]
 
     val_dataloaders = [
         DataLoader(
@@ -265,8 +275,8 @@ if __name__ == "__main__":
         )
         load_state(model, device, config_train['checkpoint_path'])
 
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
-                f'in {train_mode} mode all the tasks.')
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
+                f'in {train_mode} mode on all the tasks.')
 
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
     _, best_metric = train_validation_loop_multitask(

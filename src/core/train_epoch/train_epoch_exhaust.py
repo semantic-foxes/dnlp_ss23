@@ -19,7 +19,8 @@ def train_epoch_exhaust(
         overall_config: dict = None,
         verbose: bool = True,
         current_epoch: int = None,
-        weights: List[int] = [1, 1, 1]
+        weights: List[int] = [1, 1, 1],
+        cosine_loss = None,
 ):
     model.train()
 
@@ -42,7 +43,11 @@ def train_epoch_exhaust(
             not_exhausted_criterions
         )
 
-        train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode, overall_config, is_optimizer_step=False)
+        train_one_batch_multitask(
+            model, batch, optimizer, criterion, device, task, train_mode, overall_config,
+            is_optimizer_step=False,
+            cosine_loss=cosine_loss,
+        )
 
         if verbose:
             pbar.update(1)
@@ -58,7 +63,11 @@ def train_epoch_exhaust(
                 number_chosen
             )
 
-            train_one_batch_multitask(model, batch, optimizer, criterion, device, task, train_mode, overall_config, is_optimizer_step=False)
+            train_one_batch_multitask(
+                model, batch, optimizer, criterion, device, task, train_mode, overall_config,
+                is_optimizer_step=False,
+                cosine_loss=cosine_loss,
+            )
 
             if verbose:
                 pbar.update(1)

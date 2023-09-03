@@ -39,7 +39,8 @@ def train_one_epoch_multitask(
             overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
-            weights=weights
+            weights=weights,
+            cosine_loss=cosine_loss,
         )
     
     elif dataloader_mode == 'sequential':
@@ -193,7 +194,7 @@ def train_validation_loop_multitask(
         logger.error(message)
         raise NotImplementedError(message)
 
-    if unfreezer:
+    if unfreezer is not None:
         unfreezer.start()
 
     # Initialization
