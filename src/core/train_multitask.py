@@ -54,6 +54,7 @@ def train_one_epoch_multitask(
             overall_config=overall_config,
             verbose=verbose,
             current_epoch=current_epoch,
+            skip_optimizer_step=skip_optimizer_step,
         )
     
     elif dataloader_mode == 'min':
