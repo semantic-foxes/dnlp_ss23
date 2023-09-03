@@ -11,6 +11,8 @@ from shutil import rmtree
 
 from src.optim import AdamW
 from src.models import MultitaskBERT
+from src.core.unfreezer import BasicGradualUnfreezer
+from src.metrics.regression_metrics import pearson_correlation_loss
 from src.metrics import accuracy, pearson_correlation
 from src.datasets import SSTDataset, SentenceSimilarityDataset
 from src.core import train_one_epoch_multitask, evaluate_model_multitask
@@ -71,15 +73,61 @@ def main():
     )
 
     # Create dataloaders
-    train_dataloaders = [
-        DataLoader(
-            x,
+    sst_train_dataloader = DataLoader(
+        sst_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=sst_train_dataset.collate_fn,
+        batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
+        num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
+    )
+    sts_train_dataloader = DataLoader(
+        sts_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=sts_train_dataset.collate_fn,
+        batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
+        num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
+    )
+
+    train_mode = COMMON_CONFIG['train']['train_mode']
+    if train_mode == 'contrastive':
+        exp_factor = COMMON_CONFIG['train'].get('exp_factor', 2)
+        quora_train_dataloader = DataLoader(
+            quora_train_dataset,
             shuffle=True,
-            collate_fn=x.collate_fn,
+            drop_last=True,
+            collate_fn=quora_train_dataset.collate_fn_contrastive(exp_factor),
             batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
             num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
         )
-        for x in [sst_train_dataset, quora_train_dataset, sts_train_dataset]
+
+    elif train_mode == 'triplet':
+        dropout_quora = COMMON_CONFIG['train']['triplet_dropout_rates']['quora']
+
+        quora_train_dataloader = DataLoader(
+            quora_train_dataset,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=quora_train_dataset.collate_fn_triplet(dropout_quora),
+            batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
+            num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
+        )
+
+    else:
+        quora_train_dataloader = DataLoader(
+            quora_train_dataset,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=quora_train_dataset.collate_fn,
+            batch_size=COMMON_CONFIG['data']['dataloader']['batch_size'],
+            num_workers=COMMON_CONFIG['data']['dataloader']['num_workers'],
+        )
+
+    train_dataloaders = [
+        sst_train_dataloader,
+        quora_train_dataloader,
+        sts_train_dataloader
     ]
     val_dataloaders = [
         DataLoader(
@@ -91,6 +139,8 @@ def main():
         )
         for x in [sst_val_dataset, quora_val_dataset, sts_val_dataset]
     ]
+
+    weights = [x['weight'] for x in (config_sst, config_quora, config_sts)]
 
     # Hyperparameter config handling
     hyperparameter_config_path = 'hyperparameter_config.yaml'
@@ -116,6 +166,7 @@ def main():
             **new_model_config
         )
         model = model.to(device)
+        unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
 
         # Changing all the train hyperparameters
         new_train_config = COMMON_CONFIG['train'].copy()
@@ -123,23 +174,42 @@ def main():
         for key, value in train_hyperparameters.items():
             new_train_config[key] = value
 
+        if new_train_config['use_pearson_loss']:
+            criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), pearson_correlation_loss]
+        else:
+            criteria = [nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()]
+
+        if new_train_config['add_cosine_loss']:
+            cosine_loss = nn.CosineEmbeddingLoss(reduction='mean')
+        else:
+            cosine_loss = None
+
+        train_mode = new_train_config['train_mode']
         optimizer = AdamW(model.parameters(), lr=new_train_config['lr'])
 
         epoch_train_state = None
+        unfreezer.start()
         for i in range(new_train_config['n_epochs']):
+
             epoch_train_state = train_one_epoch_multitask(
-                model,
-                train_dataloaders,
-                optimizer,
-                criterions=[nn.CrossEntropyLoss(), nn.CrossEntropyLoss(), nn.MSELoss()],
+                model=model,
+                train_dataloaders=train_dataloaders,
+                optimizer=optimizer,
+                criterions=criteria,
                 device=device,
                 dataloader_mode=new_train_config['dataloader_mode'],
+                train_mode=train_mode,
                 verbose=True,
                 current_epoch=i,
-                weights=[1, 10, 1],
+                weights=weights,
                 prev_state=epoch_train_state,
+                skip_optimizer_step=new_train_config['skip_optimizer_step'],
+                cosine_loss=cosine_loss,
+                overall_config=COMMON_CONFIG
             )
             logger.info(f'Finished training epoch {i}')
+
+            unfreezer.step()
 
         val_metrics = evaluate_model_multitask(
             model,
