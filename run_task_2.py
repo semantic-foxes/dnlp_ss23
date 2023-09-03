@@ -136,45 +136,54 @@ if __name__ == "__main__":
         batch_size=config_dataloader['batch_size'],
         num_workers=config_dataloader['num_workers'],
     )
-
-    train_eval_dataloaders = [sst_train_dataloader] + [
-        DataLoader(
-            x,
+    sts_train_dataloader = DataLoader(
+        sts_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=sts_train_dataset.collate_fn,
+        batch_size=config_dataloader['batch_size'],
+        num_workers=config_dataloader['num_workers'],
+    )
+    quora_train_eval_dataloader = DataLoader(
+        quora_train_dataset,
+        shuffle=True,
+        drop_last=True,
+        collate_fn=quora_train_dataset.collate_fn,
+        batch_size=config_dataloader['batch_size'],
+        num_workers=config_dataloader['num_workers'],
+    )
+    if train_mode == 'contrastive':
+        quora_train_dataloader = DataLoader(
+            quora_train_dataset,
             shuffle=True,
             drop_last=True,
-            collate_fn=x.collate_fn,
+            collate_fn=quora_train_dataset.collate_fn_contrastive(exp_factor),
             batch_size=config_dataloader['batch_size'],
             num_workers=config_dataloader['num_workers'],
         )
-        for x in [quora_train_dataset, sts_train_dataset]
+    elif train_mode == 'triplet':
+        quora_train_dataloader = DataLoader(
+            quora_train_dataset,
+            shuffle=True,
+            drop_last=True,
+            collate_fn=quora_train_dataset.collate_fn_triplet(dropout_quora),
+            batch_size=config_dataloader['batch_size'],
+            num_workers=config_dataloader['num_workers'],
+        )
+    else:
+        quora_train_dataloader = quora_train_eval_dataloader
+
+    train_eval_dataloaders = [
+        sst_train_dataloader,
+        quora_train_eval_dataloader,
+        sts_train_dataloader
     ]
 
-    if train_mode == 'contrastive':
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn_contrastive(exp_factor),
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x in [quora_train_dataset, sts_train_dataset]
-        ]
-    elif train_mode == 'triplet':
-        train_dataloaders = [sst_train_dataloader] + [
-            DataLoader(
-                x,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=x.collate_fn_triplet(rate),
-                batch_size=config_dataloader['batch_size'],
-                num_workers=config_dataloader['num_workers'],
-            )
-            for x, rate in [(quora_train_dataset, dropout_quora), (sts_train_dataset, dropout_sts)]
-        ]
-    else:
-        train_dataloaders = train_eval_dataloaders
+    train_dataloaders = [
+        sst_train_dataloader,
+        quora_train_dataloader,
+        sts_train_dataloader
+    ]
 
     val_dataloaders = [
         DataLoader(
@@ -280,8 +289,8 @@ if __name__ == "__main__":
         )
         load_state(model, device, config_train['checkpoint_path'])
 
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model on '
-                f'in {train_mode} mode all the tasks.')
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
+                f'in {train_mode} mode on all the tasks.')
 
     _, best_metric = train_validation_loop_multitask(**{**default_args, 'best_metric': best_metric})
 
