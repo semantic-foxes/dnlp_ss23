@@ -310,6 +310,13 @@ This clipping is known to reduce MSE loss as a projection.
 
 Generally, MSE loss produce better results.
 
+### Pre/Post train [Danila Litskevich]
+
+The idea is that the logic before and after main training can be different, 
+it is set up in the corresponding sections of a config file.
+
+However, it wasn't producing better results.
+
 ### Additional pretrain on Quora [Danila Litskevich]
 
 Since `continuous` mode covers `SST` and `STS` datasets more offen than `Quora` due to their difference in size,
