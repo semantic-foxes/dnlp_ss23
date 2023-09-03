@@ -234,7 +234,7 @@ if __name__ == "__main__":
         cosine_loss = None
 
     best_metric = {}
-    if args.restore:
+    if args.restore or CONFIG.get('restore'):
         load_state(model, device, config_bert['weights_path'])
         best_scores = evaluate_model_multitask(model, val_dataloaders, device, metrics, criteria, cosine_loss)
         best_metric = best_scores['metric']
