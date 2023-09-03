@@ -12,7 +12,6 @@ def generate_predictions(
         dataloader: torch.utils.data.DataLoader,
         device: torch.device,
         dataloader_message: str = 'test',
-        overall_config: dict = {},
 ) -> pd.DataFrame:
     """
     Generates predictions for the given dataloader.
@@ -92,8 +91,7 @@ def generate_predictions_multitask(
         device: torch.device,
         dataloaders: torch.utils.data.DataLoader,
         filepaths: List[str],
-        overall_config: dict = {},
-) -> None:
+):
 
     for test_loader, save_path in zip(dataloaders, filepaths):
         predictions = generate_predictions(
@@ -101,7 +99,6 @@ def generate_predictions_multitask(
             dataloader=test_loader,
             device=device,
             dataloader_message=test_loader.dataset.task,
-            overall_config=overall_config,
         )
 
         predictions.to_csv(save_path)

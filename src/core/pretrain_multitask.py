@@ -31,17 +31,17 @@ def pretrain_validation_loop_multitask(
         cosine_loss = None,
 ):
     """
-    Run the train loop with selecting parameters while validating the model
+    Run the train loop with selected parameters while validating the model
     after each epoch.
     """
     best_metric = {**best_metric}
 
-    for i in range(len(metric)):
-        try:
-            load_state(model, device, save_best_path)
-        except:
-            logger.info(f'failed to load model from {save_best_path}')
+    try:
+        load_state(model, device, save_best_path)
+    except:
+        logger.warning(f'Failed to load model from {save_best_path}.')
 
+    for i in range(len(metric)):
         result, best_metric = train_validation_loop_multitask(
             model=model,
             optimizer=optimizer,
