@@ -335,7 +335,7 @@ the overall loss is the sum of triplet loss for embeddings and the task-specific
 for model's predictions. Namely, the final loss function to be optimized is a weighted sum of:
 - the triplet loss is applied to the embeddings of the three elements
 - the prediction loss for pairs (anchor, positive) with target 1
-- the prediction loss for pairs (anchor, negative) with target 0
+- the prediction loss for pairs (anchor, negative) with target 0.
 
 ## Results
 
