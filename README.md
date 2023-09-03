@@ -43,6 +43,12 @@ The `config.yaml` file streamlines workflow by centralizing the model's paramete
 python3 run_train.py
 ```
 
+- For generating prediction, run:
+
+```python
+python3 generate_predictions.py
+```
+
 - For pretraining on `Quora`, run:
 
 ```python
@@ -250,7 +256,7 @@ Multi-batch approach turned out to preserve same good performance for `Quora` du
 
 ### [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html) [Danila Litskevich]
 
-`CosineEmbeddingsLoss` can be applied to `Quora` for futher regularization.
+`CosineEmbeddingsLoss` can be applied only to `Quora` for futher regularization.
 
 ### Mix freeze/unfreeze steps [Danila Litskevich]
 
@@ -315,6 +321,52 @@ Another approach is to first pretrain the model on `Quora` and then use our regu
 
 That approach appeared to train on `SST` and `STS` datasets while preserving the quality on `Quora`.
 In the end, it produced the best results.
+
+### Alternative training methods
+
+In addition to optimizing objective functions for the three tasks directly,
+we implement two alternative training methods, aiming to improve the quality
+of embeddings (e.g., the problem of 'anisotropy').
+
+#### Multiple negative ranking loss [Georgy Belousov]
+
+We implement a version of Multiple Negative Ranking Loss Learning of [Henderson et al.].
+
+This training mode is implemented for the paraphrase detection and semantic text similarity tasks.
+The additional training data is generated within the custom data collator `collate_fn_contrasive`.
+This function has a parameter `exp_factor`, governing the amount of additional training data
+generated.
+
+For a collection of objects `[(a_1, b_1, target_1), ... ,(a_n, b_n, target_n)]` the collator
+returns a list of batches, the first of which is the original batch, while the others are batches corresponding to
+`(a_i, b_s(i), 0)` for the first `exp_factor` - 1 cyclic shifts s.
+
+The model is then trained on this data in a similar way to the standard training mode.
+The difference is that, instead of optimizing the loss on the original batch of objects,
+we optimize the sum of losses on `exp_factor` batches in this list.
+In particular, a version of cosine loss can be optimized, while making sure that the classification
+'heads' are updated.
+
+#### Triplet training mode [Georgy Belousov]
+
+Another way to optimize embedding quality is to use triplet loss.
+
+We implement triplet mode for semantic text similarity and paraphrase detection tasks.
+The training data is generated within the custom data collator `collate_fn_triplet`. The collator
+prepares triplets from the dataset of pairs (namely, the `Quora` and `STS` dataset).
+A pair of sentences with the positive target is transformed into a triplet with the first sentence
+as anchor, the second sentence as the matching (positive) input; a sentence from a different object
+in the same batch is sampled as the negative input. A pair of sentences with original negative target
+is transformed into a triplet with the anchor and the positive input obtained by applying two different
+dropout masks to the first sentence; the original second sentence is used as the negative input.
+(For the `STS` dataset, a nonzero target is considered positive.)
+
+To make sure the task-specific layers of the model ('heads') are optimized at the same time,
+the overall loss is the sum of triplet loss for embeddings and the task-specific loss functions
+for model's predictions. Namely, the final loss function to be optimized is a weighted sum of:
+- the triplet loss is applied to the embeddings of the three elements
+- the prediction loss for pairs (anchor, positive) with target 1
+- the prediction loss for pairs (anchor, negative) with target 0.
 
 ## Results
 
