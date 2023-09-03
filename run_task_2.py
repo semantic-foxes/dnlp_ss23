@@ -244,7 +244,11 @@ if __name__ == "__main__":
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
-    unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
+    config_unfreeze=config_train.get('unfreezer', False)
+    if config_unfreeze:
+        unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
+    else:
+        unfreezer = None
 
     default_args = {
         'model': model,

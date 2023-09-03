@@ -4,7 +4,7 @@ use_cuda: True
 watcher:
   type: 'wandb' # null for no watcher
   project_name: 'semantic_foxes_bert'
-  mode: 'offline' # "online", "offline" or "disabled"
+  mode: 'online' # "online", "offline" or "disabled"
 
 data:
   sst_dataset:
@@ -34,21 +34,22 @@ bert_model:
   weights_path: 'checkpoints/finetune_classifier.pt'
 
 train:
-  n_epochs: 8
-  lr: 0.00001
+  n_epochs: 20
+  lr: 0.00003
+  unfreezer: False
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
-  train_mode: 'standard' # 'standard' or 'contrastive' or 'triplet'
+  train_mode: 'contrastive' # 'standard' or 'contrastive' or 'triplet'
   triplet_weight: 0.3
   triplet_dropout_rates:
       sts: 0.2
       quora: 0.1
-  skip_train_eval: 2 # number of times to skip evaluation of train datasets
-  max_train_size: null # null - reads the whole dataset, ~6050 - min 
+  skip_train_eval: 1 # number of times to skip evaluation of train datasets
+#  max_train_size: 24 # null - reads the whole dataset, ~6050 - min
 #  max_eval_size: 24
   skip_optimizer_step: 3 # do optimizer.step() every n-th time -- only for 'continuous'
-  add_cosine_loss: True
-  use_pearson_loss: True # for paraphrase regression
+  add_cosine_loss: False
+  use_pearson_loss: False # for paraphrase regression
   freeze_bert_steps: 1 # -- only for 'continuous
   is_multi_batch: True # -- only for 'continuous
 
@@ -58,11 +59,11 @@ train:
 #   dataloader_mode: 'sequential'
 #   skip_optimizer_step: 2
 
-post_train:
-  n_epochs: 6
-  lr: 0.0001
-  dataloader_mode: 'sequential'
-  skip_optimizer_step: 4
+#post_train:
+#  n_epochs: 6
+#  lr: 0.0001
+#  dataloader_mode: 'sequential'
+#  skip_optimizer_step: 4
 
 
 predict:
