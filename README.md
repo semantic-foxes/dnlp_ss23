@@ -142,32 +142,6 @@ Also, one can add additional
 [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html)
 for `Quora`.
 
-### Multi-batch [Danila Litskevich]
-
-The idea is to sample from all datasets and produce one batch, which we call a 'multi-batch'.
-That is performed in `continuos` mode by providing skipping 3 steps of optimizer using `skip_optimizer_step`
-and setting `is_multi_batch` to true.
-Also one can balance the amount of batches in a 'multi-batch' by providing corresponding `weight`'s.
-
-This approach is robust and performing well with other improvements, in particular with an additional pretrain on `Quora`.
-
-### Additional pretrain on `Quora` [Danila Litskevich]
-
-Since we have 10 times more data for `Quora` than for other datasets, we can use it to pretrain our BERT without overfitting during further finetuning.
-
-Multi-batch approach turned out to preserve same good performance for `Quora` during finetuning while also achieving great results for other datasets.
-
-### [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html) [Danila Litskevich]
-
-`CosineEmbeddingsLoss` can be applied to `Quora` for futher regularization.
-
-### Mix freeze/unfreeze steps [Danila Litskevich]
-
-Another possible way to regularize our model is to mix optimization steps freezing and unfreezing BERT.
-That behaviour is controlled by `freeze_bert_steps`.
-
-It was enhancing the performance, however Gradual unfreeze is working better.
-
 ### Gradual unfreeze [Sergei Zakharov], [Universal Language Model Fine-tuning](https://paperswithcode.com/method/ulmfit#:~:text=Universal%20Language%20Model%20Fine%2Dtuning%2C%20or%20ULMFiT%2C%20is%20an,LSTM%20architecture%20for%20its%20representations)
 
 It has been shown that the gradual unfreeze of BERT layers can lead to
@@ -251,9 +225,48 @@ This specific feature seems to be of real importance since it provides a major
 boost on the metric. We tried other clipping strategies as well, but this is a
 heuristic that worked the best for us.
 
+### Multi-batch [Danila Litskevich]
+
+The idea is to sample from all datasets and produce one batch, which we call a 'multi-batch'.
+That is performed in `continuos` mode by providing skipping `3` steps of optimizer using `skip_optimizer_step`
+and setting `is_multi_batch` to true.
+Opposed to "Dilated" batches approach, 'multi-batch' ensures that on `3n`, `3n+1`, `3n+2` steps we would sample from all datasets,
+therefore creating a 'multi-batch'.
+
+Also, one can balance the amount of batches in a 'multi-batch' by providing corresponding `weight`'s.
+
+This approach is robust and quick and performing well with other improvements, in particular with an additional pretrain on `Quora`.
+
+### Additional pretrain on `Quora` [Danila Litskevich]
+
+Since we have 10 times more data for `Quora` than for other datasets, we can use it to pretrain our model without overfitting during further finetuning.
+
+Multi-batch approach turned out to preserve same good performance for `Quora` during finetuning while also achieving great results for other datasets.
+
+### [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html) [Danila Litskevich]
+
+`CosineEmbeddingsLoss` can be applied to `Quora` for futher regularization.
+
+### Mix freeze/unfreeze steps [Danila Litskevich]
+
+Another possible way to regularize our model is to mix optimization steps freezing and unfreezing BERT.
+That behaviour is controlled by `freeze_bert_steps`.
+
+It was enhancing the performance, however Gradual unfreeze is working better.
+
 ## Experiments
 
-### Additional BERT pretrain 
+### MSE vs PearsonLoss [Danila Litskevich]
+
+As a loss function for `STS` we use MSE loss by default. However, we can also use negative Pearson correlation as another loss, called PearsonLoss.
+
+PearsonLoss has a significant downside that the predictions are not forced to be in the original targets range `[0, 5]`.
+
+On the other hand, MSE turned out to be sensitive to predictions range: we stick with `[-5, 5]` range.
+Due to that during evaluation and prediction's generation phrase we clip predictions to the original targets range `[0, 5]`.
+This clipping is known to reduce MSE loss as a projection.
+
+Generally, MSE loss produce better results.
 
 ## Results
 
@@ -261,9 +274,9 @@ heuristic that worked the best for us.
 |---|---|---|---|
 | Pretrain | 0.387 | 0.699 | 0.261 |
 | Finetune | 0.498 | 0.708 | 0.376 |
-| Continuous | 0.498 | 0.708 | 0.376 |
-| Continuous<sub>Quora</sub> | 0.498 | 0.708 | 0.376 |
-| Exhaust | 0.498 | 0.708 | 0.376 |
+| Exhaust | 0. | 0. | 0. |
+| Continuous | 0.498 | 0.733 | 0.516 |
+| Continuous<sub>Quora</sub> | 0.500 | 0.771 | 0.592 |
 
 ### Pretrain model
 
@@ -272,6 +285,18 @@ Using pretrained BERT with frozen weights, we used simple classifiers for SST an
 ### Finetune model
 
 Same approach as for Pretrain model, but now BERT weights are not frozen.
+
+### Exhaust model
+
+The model that utilize `exhaust` mode.
+
+### Continuous model
+
+The model that utilize `continuous` mode.
+
+### Continuous<sub>Quora</sub> model
+
+This is our best model which combines Continuous model with additional pretraining on `Quora`.
 
 ## Codebase Overview
 
