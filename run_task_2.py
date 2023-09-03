@@ -217,6 +217,7 @@ if __name__ == "__main__":
         hidden_size=config_bert['hidden_size'],
         hidden_dropout_prob=config_bert['hidden_dropout_prob'],
         attention_dropout_prob=config_bert['attention_dropout_prob'],
+        use_pearson_loss=config_train['use_pearson_loss'],
     )
     model = model.to(device)
     unfreezer = BasicGradualUnfreezer(model, layers_per_step=1, steps_to_hold=1)
