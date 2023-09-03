@@ -24,7 +24,7 @@ data:
     weight: 1
 
   dataloader:
-    batch_size: 32
+    batch_size: 64
     num_workers: 1
 
 bert_model:

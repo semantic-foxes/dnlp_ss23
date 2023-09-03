@@ -347,25 +347,25 @@ if __name__ == "__main__":
             cosine_loss=None,
         )
 
-    load_state(model, device, config_train['checkpoint_path'])
+    # load_state(model, device, config_train['checkpoint_path'])
 
-    logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
-                f'all the tasks.')
+    # logger.info(f'Starting testing the {config_bert["bert_mode"]} BERT model on '
+    #             f'all the tasks.')
     
-    evaluate_model_multitask(
-        model=model,
-        eval_dataloaders=val_dataloaders,
-        device=device,
-        metrics=metrics,
-        criterions=criteria,
-        cosine_loss=cosine_loss,
-        verbose=args.silent,
-        set_name='val',
-    )
+    # evaluate_model_multitask(
+    #     model=model,
+    #     eval_dataloaders=val_dataloaders,
+    #     device=device,
+    #     metrics=metrics,
+    #     criterions=criteria,
+    #     cosine_loss=cosine_loss,
+    #     verbose=args.silent,
+    #     set_name='val',
+    # )
     
-    generate_predictions_multitask(
-        model=model,
-        device=device,
-        dataloaders=test_dataloaders,
-        filepaths=config_prediction.values()
-    )
+    # generate_predictions_multitask(
+    #     model=model,
+    #     device=device,
+    #     dataloaders=test_dataloaders,
+    #     filepaths=config_prediction.values()
+    # )

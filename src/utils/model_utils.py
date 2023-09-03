@@ -95,7 +95,7 @@ def load_state(
     
     saved = torch.load(filepath)
 
-    model.load_state_dict(saved['model'])
+    # model.load_state_dict(saved['model'])
     model = model.to(device)
     logger.info(f"Loaded model from {filepath}")
 
