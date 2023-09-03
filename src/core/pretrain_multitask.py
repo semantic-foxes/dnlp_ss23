@@ -31,7 +31,7 @@ def pretrain_validation_loop_multitask(
         cosine_loss = None,
 ):
     """
-    Run the train loop with selecting parameters while validating the model
+    Run the train loop with selected parameters while validating the model
     after each epoch.
     """
     best_metric = {**best_metric}

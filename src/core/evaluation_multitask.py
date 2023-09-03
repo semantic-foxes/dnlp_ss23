@@ -15,7 +15,6 @@ def evaluate_model_multitask(
         metrics: List[Callable],
         criterions: List[torch.nn.Module] = None,
         cosine_loss = None,
-        overall_config: dict = {},
         verbose: bool = True,
         set_name: str = 'train',
 ) -> dict:
