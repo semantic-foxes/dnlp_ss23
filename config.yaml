@@ -24,7 +24,7 @@ data:
     weight: 1
 
   dataloader:
-    batch_size: 32
+    batch_size: 64
     num_workers: 1
 
 bert_model:
@@ -35,7 +35,7 @@ bert_model:
   local_files_only: False
   weights_path: 'checkpoints/quora_pretrained.pt'
 
-restore: False
+restore: True
 
 train:
   n_epochs: 26
@@ -52,7 +52,7 @@ train:
   add_cosine_loss: False
   use_pearson_loss: False # for paraphrase regression
   freeze_bert_steps: 0 # 0 to disable -- only for 'continuous
-  is_multi_batch: False # -- only for 'continuous
+  is_multi_batch: True # -- only for 'continuous
 
 pretrain:
   n_epochs: 0
