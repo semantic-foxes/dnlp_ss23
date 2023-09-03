@@ -320,7 +320,7 @@ In particular, a version of cosine loss can be optimized, while making sure that
 
 Another way to optimize embedding quality is to use triplet loss.
 
-The triplet mode is implemented for semantic text similarity and paraphrase detection tasks.
+We implement triplet mode for semantic text similarity and paraphrase detection tasks.
 The training data is generated within the custom data collator `collate_fn_triplet`. The collator
 prepares triplets from the dataset of pairs (namely, the `Quora` and `STS` dataset).
 A pair of sentences with the positive target is transformed into a triplet with the first sentence
