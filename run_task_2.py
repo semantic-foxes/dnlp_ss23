@@ -273,7 +273,7 @@ if __name__ == "__main__":
     config_pre_train = CONFIG.get('pre_train', {})
     if config_pre_train.get('n_epochs', 0):
         logger.info(f'Starting PRE train on all the tasks.')
-        model.freeze_bert(True)
+        model.bert.requires_grad_(False)
         optimizer_pre = AdamW(model.parameters(), lr=config_pre_train['lr'])
         _, best_metric = pretrain_validation_loop_multitask(
             **{
@@ -285,6 +285,7 @@ if __name__ == "__main__":
                 'best_metric': best_metric,
                 'skip_optimizer_step': config_pre_train.get('skip_optimizer_step', 1),
                 'cosine_loss': None,
+                'unfreezer':None,
             }
         )
         load_state(model, device, config_train['checkpoint_path'])
@@ -299,7 +300,7 @@ if __name__ == "__main__":
     if config_post_train.get('n_epochs', 0):
         logger.info(f'Starting POST train on all the tasks.')
         load_state(model, device, config_train['checkpoint_path'])
-        model.freeze_bert(True)
+        model.bert.requires_grad_(False)
         optimizer_post = AdamW(model.parameters(), lr=config_post_train['lr'])
         _, best_metric = pretrain_validation_loop_multitask(
             **{
@@ -311,6 +312,7 @@ if __name__ == "__main__":
                 'best_metric': best_metric,
                 'skip_optimizer_step': config_post_train.get('skip_optimizer_step', 1),
                 'cosine_loss': None,
+                'unfreezer':None,
             }
         )
 
