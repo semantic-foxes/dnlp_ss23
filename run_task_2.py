@@ -282,7 +282,7 @@ if __name__ == "__main__":
         )
         load_state(model, device, config_train['checkpoint_path'])
 
-    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model'
+    logger.info(f'Starting training the {config_bert["bert_mode"]} BERT model '
                 f'in {train_mode} mode on all the tasks.')
 
     model.bert.requires_grad_(True)
