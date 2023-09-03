@@ -4,10 +4,11 @@ import wandb
 
 from torch.utils.data import DataLoader
 from torch import nn
+from torch.optim.lr_scheduler import ExponentialLR
+
 from src.core.evaluation_multitask import evaluate_model_multitask
 from src.core.pretrain_multitask import pretrain_validation_loop_multitask
 from src.metrics.regression_metrics import pearson_correlation_loss
-
 from src.models import MultitaskBERT
 from src.optim import AdamW
 from src.datasets import SSTDataset, SentenceSimilarityDataset
@@ -285,6 +286,10 @@ if __name__ == "__main__":
 
     model.bert.requires_grad_(True)
     optimizer = AdamW(model.parameters(), lr=config_train['lr'])
+    scheduler = ExponentialLR(
+        optimizer,
+        gamma=1.2
+    )
     _, best_metric = train_validation_loop_multitask(
         model=model,
         optimizer=optimizer,
@@ -296,6 +301,7 @@ if __name__ == "__main__":
         n_epochs=config_train['n_epochs'],
         device=device,
         unfreezer=unfreezer,
+        scheduler=scheduler,
         watcher=watcher,
         verbose=args.silent,
         weights=weights,
