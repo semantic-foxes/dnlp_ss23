@@ -22,7 +22,7 @@ data:
     test_path: 'data/sts-test-student.csv'
 
   dataloader:
-    batch_size: 64
+    batch_size: 32
     num_workers: 1
 
 bert_model:
@@ -36,7 +36,7 @@ bert_model:
 train:
   n_epochs: 20
   lr: 0.00003
-  unfreezer: False
+  unfreezer: True
   checkpoint_path: 'checkpoints/finetune_classifier.pt'
   dataloader_mode: 'exhaust' # 'exhaust' or 'sequential' or 'min' or 'continuous'
   train_mode: 'contrastive' # 'standard' or 'contrastive' or 'triplet'
@@ -47,9 +47,9 @@ train:
   skip_train_eval: 1 # number of times to skip evaluation of train datasets
 #  max_train_size: 24 # null - reads the whole dataset, ~6050 - min
 #  max_eval_size: 24
-  skip_optimizer_step: 3 # do optimizer.step() every n-th time -- only for 'continuous'
-  add_cosine_loss: False
-  use_pearson_loss: False # for paraphrase regression
+  skip_optimizer_step: 1 # do optimizer.step() every n-th time -- only for 'continuous'
+  add_cosine_loss: True
+  use_pearson_loss: True # for paraphrase regression
   freeze_bert_steps: 1 # -- only for 'continuous
   is_multi_batch: True # -- only for 'continuous
 
