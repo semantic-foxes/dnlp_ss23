@@ -269,26 +269,31 @@ It was enhancing the performance, however Gradual unfreeze is working better.
 
 In addition to optimizing objective functions for the three tasks directly,
 we implement two alternative training methods, aiming to improve the quality
-of embeddings (e.g., the problem of 'anisotropy').
+of embeddings (e.g., the problem of 'anisotropy', see https://aclanthology.org/D19-1006.pdf).
+
+The alternative training methods can be turned on using the config option `train_mode`.
 
 #### Multiple negative ranking loss [Georgy Belousov]
 
-We implement a version of Multiple Negative Ranking Loss Learning of [Henderson et al.].
+We implement a version of Multiple Negative Ranking Loss Learning of [Henderson et al.](https://arxiv.org/abs/1705.00652).
 
 This training mode is implemented for the paraphrase detection and semantic text similarity tasks.
 The additional training data is generated within the custom data collator `collate_fn_contrasive`.
 This function has a parameter `exp_factor`, governing the amount of additional training data
 generated.
 
-For a collection of objects `[(a_1, b_1, target_1), ... ,(a_n, b_n, target_n)]` the collator
-returns a list of batches, the first of which is the original batch, while the others are batches corresponding to
-`(a_i, b_s(i), 0)` for the first `exp_factor` - 1 cyclic shifts s.
+Given the objects `(a_1, b_1, target_1), ..., (a_n, b_n, target_n)`, the collator generates a list of batches.
+The first batch corresponds to the original data, while the subsequent `exp_factor` - $1$ batches contain the objects
+`(a_i, b_s(i), 0)` for the first `exp_factor` - $1$ cyclic shifts `s`.
 
 The model is then trained on this data in a similar way to the standard training mode.
 The difference is that, instead of optimizing the loss on the original batch of objects,
-we optimize the sum of losses on `exp_factor` batches in this list.
+we optimize the weighted sum of losses on all batches in this list.
 In particular, a version of cosine loss can be optimized, while making sure that the classification
 'heads' are updated.
+
+The weight (see the config option `contrastive_weight`) of the losses on additional objects in the resulting loss function to be optimized,
+as well as the `exp_factor` parameter, are hyperparameters in this training method.
 
 #### Triplet training mode [Georgy Belousov]
 
@@ -296,7 +301,8 @@ Another way to optimize embedding quality is to use triplet loss.
 
 We implement triplet mode for semantic text similarity and paraphrase detection tasks.
 The training data is generated within the custom data collator `collate_fn_triplet`. The collator
-prepares triplets from the dataset of pairs (namely, the `Quora` and `STS` dataset).
+prepares triplets from the dataset of pairs (namely, the `Quora` and `STS` datasets).
+
 A pair of sentences with the positive target is transformed into a triplet with the first sentence
 as anchor, the second sentence as the matching (positive) input; a sentence from a different object
 in the same batch is sampled as the negative input. A pair of sentences with original negative target
@@ -310,6 +316,9 @@ for model's predictions. Namely, the final loss function to be optimized is a we
 - the triplet loss is applied to the embeddings of the three elements
 - the prediction loss for pairs (anchor, positive) with target 1
 - the prediction loss for pairs (anchor, negative) with target 0.
+
+The weight of the triplet loss in the final loss function, as well as the dropout rate of the collator,
+are hyperparemeters in this training method (see config options `triplet_weight`, `triplet_dropout_rates').
 
 ## Experiments
 
@@ -375,12 +384,29 @@ Another approach is to first pretrain the model on `Quora` and then use our regu
 That approach appeared to train on `SST` and `STS` datasets while preserving the quality on `Quora`.
 In the end, it produced the best results.
 
+### Alternative training methods[Georgy Belousov]
+
+Using the multiple negative ranking loss improved results in the paraphrase detection task, however, it impacted
+the results on the `STS` task negatively. (See, in particular, the 'MNRL' row in the results table below)
+We found that the optimal value for the exp_factor parameter is 2; increasing it beyond that does not give
+any significant improvement, but greatly increases training time. The optimal value for the `contrastive_weight`
+parameter is 0.5.
+
+We were able to train the model with the task-specific classifiers in triplet mode; however, the performance of
+the model was not comparable to what we got with the standard and MNRL training modes. The poor results
+in the `STS` task are to be expected, as our implementation of triplet collator treats all pairs with target
+at least 1 as 'positive'. Another issues might be the coarse implementation of masking (e.g., the special
+tokens are ignored) and the fact that the original objects can not be efficiently separated from generated
+data at training time.
+
 ## Results
 
 | Model | SST | Quora | STS |
 |---|---|---|---|
 | Pretrain | 0.387 | 0.699 | 0.261 |
 | Finetune | 0.498 | 0.708 | 0.376 |
+| MNRL | 0.467 | 0.791 | 0.338 |
+| Triplet | 0.483 | 0.686 | 0.115 |
 | Exhaust | 0. | 0. | 0. |
 | Continuous | 0.498 | 0.733 | 0.516 |
 | Continuous<sub>Quora</sub> | 0.500 | 0.771 | 0.592 |
@@ -424,7 +450,7 @@ The repository has undergone significant changes. Here's a brief overview:
 - `configs`: Contains config files for training.
 - `src`: Contains shared code, further divided into:
   - `core`: Holds functions common to models like the training loop and prediction generation.
-  - `datasets`: Houses all dataset classes. `SSTDataset` is for the SST task, while `SentenceSimilarityDataset` serves both Quora and SemEval datasets.
+  - `datasets`: Houses all dataset classes. `SSTDataset` is for the SST task, while `SentenceSimilarityDataset` serves both Quora and SemEval datasets. Also includes the implementation of custom collators.
   - `models`: Includes all model classes, subdivided into:
     - `base_bert`: Non-maintained foundational class for BERT.
     - `bert`: Generates embeddings for input.
