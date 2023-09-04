@@ -448,7 +448,7 @@ See above in the experiments.
 
 ### Continuous model
 
-The model that utilize `continuous` mode.
+The model that utilize `continuous` mode with a gradual unfreezer and a scheduler.
 
 Configuration file: `config.yaml`.
 
