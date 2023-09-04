@@ -114,7 +114,7 @@ The metric to test this dataset is Pearson correlation.
 
 ### BERT setup
 
-We used `bert-base-uncased` BERT.
+We used an unmodified (in terms of number of layers, etc.) BERT from huggingface (`bert-base-uncased`).
 
 ### Multitask trainig stategy
 
@@ -314,7 +314,7 @@ for model's predictions. Namely, the final loss function to be optimized is a we
 ## Experiments
 
 ### Common knowledge
-- We used an unmodified (in terms of number of layers, etc.) BERT from huggingface.
+
 - We generally used `lr` around `1e-5` and `dropout=0.1` since these proved to be
 generally the best.
 - Once we made it to the more complex heads for SST and STS datasets, we started using them,
