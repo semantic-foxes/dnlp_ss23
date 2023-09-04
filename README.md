@@ -272,7 +272,7 @@ It was enhancing the performance, however Gradual unfreeze is working better.
 
 In addition to optimizing objective functions for the three tasks directly,
 we implement two alternative training methods, aiming to improve the quality
-of embeddings (e.g., the problem of 'anisotropy', see https://aclanthology.org/D19-1006.pdf).
+of embeddings (e.g., the problem of 'anisotropy', see <https://aclanthology.org/D19-1006.pdf>).
 
 The alternative training methods can be turned on using the config option `train_mode`.
 
@@ -316,6 +316,7 @@ dropout masks to the first sentence; the original second sentence is used as the
 To make sure the task-specific layers of the model ('heads') are optimized at the same time,
 the overall loss is the sum of triplet loss for embeddings and the task-specific loss functions
 for model's predictions. Namely, the final loss function to be optimized is a weighted sum of:
+
 - the triplet loss is applied to the embeddings of the three elements
 - the prediction loss for pairs (anchor, positive) with target 1
 - the prediction loss for pairs (anchor, negative) with target 0.
@@ -326,7 +327,7 @@ are hyperparemeters in this training method (see config options `triplet_weight`
 ## Experiments
 
 > **Disclaimer**
-> 
+>
 > While working of this project, we faced challenges related to
 > the project's substantial scale and the frequent changes to its features.
 > These factors made it really difficult to establish a stable
@@ -341,7 +342,6 @@ are hyperparemeters in this training method (see config options `triplet_weight`
 generally be the best.
 - Once we made it to the more complex heads for SST and STS datasets, we started using them,
 so there are no experiments with simple heads.
-
 
 ### Exhaust dataset with gradual unfreeze [Sergei Zakharov]
 
@@ -380,7 +380,7 @@ Generally, MSE loss produce better results.
 
 ### Pre/Post train [Danila Litskevich]
 
-The idea is that the logic before and after main training can be different, 
+The idea is that the logic before and after main training can be different,
 it is set up in the corresponding sections of a config file.
 
 However, it wasn't producing better results.
@@ -413,7 +413,6 @@ tokens are ignored) and the fact that the original objects can not be efficientl
 data at training time.
 
 ## Results
-
 
 | Model                          | SST   | Quora | STS   |
 |--------------------------------|-------|-------|-------|
