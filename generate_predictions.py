@@ -1,5 +1,7 @@
 import argparse
 import yaml
+import pandas as pd
+import numpy as np
 
 from torch.utils.data import DataLoader
 
@@ -100,10 +102,11 @@ if __name__ == '__main__':
 
     predict_names = ['Predicted_Sentiment', 'Predicted_Is_Paraphrase',
                      'Predicted_Similarity']
+
     generate_predictions_multitask(
         model=model,
         device=device,
-        dataloaders=test_dataloaders,
+        dataloaders=val_dataloaders,
         predict_column_names=predict_names,
         filepaths=config_prediction['val'].values()
     )
@@ -115,3 +118,48 @@ if __name__ == '__main__':
         predict_column_names=predict_names,
         filepaths=config_prediction['test'].values()
     )
+
+    # Handling None-s
+    ## Val
+    predict_path = config_prediction['val']['quora_prediction_path']
+
+    predicted = pd.read_csv(predict_path, sep=', ')
+    original = pd.read_csv(config_quora['val_path'], sep='\t')
+    missing = set(original['id']) - set(predicted['id'])
+    for id in missing:
+        line = {'id': id, 'Predicted_Is_Paraphrase': 0}
+        print(line)
+        predicted = predicted.append(line, ignore_index=True)
+
+    np.savetxt(
+        predict_path,
+        predicted,
+        delimiter=', ',
+        header=', '.join(predicted.columns.values),
+        fmt='%s',
+        comments='',
+        encoding=None
+    )
+
+
+    ## Test
+    predict_path = config_prediction['test']['quora_prediction_path']
+
+    predicted = pd.read_csv(predict_path, sep=', ')
+    original = pd.read_csv(config_quora['test_path'], sep='\t')
+    missing = set(original['id']) - set(predicted['id'])
+    for id in missing:
+        line = {'id': id, 'Predicted_Is_Paraphrase': 0}
+        print(line)
+        predicted = predicted.append(line, ignore_index=True)
+
+    np.savetxt(
+        predict_path,
+        predicted,
+        delimiter=', ',
+        header=', '.join(predicted.columns.values),
+        fmt='%s',
+        comments='',
+        encoding=None
+    )
+
