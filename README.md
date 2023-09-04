@@ -151,6 +151,8 @@ Also, one can add additional
 [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html)
 for `Quora`.
 
+The triplet training mode uses `TripletMarginLoss` for embeddings in additon to the loss functions above.
+
 ### Gradual unfreeze [Sergei Zakharov], [Universal Language Model Fine-tuning](https://paperswithcode.com/method/ulmfit#:~:text=Universal%20Language%20Model%20Fine%2Dtuning%2C%20or%20ULMFiT%2C%20is%20an,LSTM%20architecture%20for%20its%20representations)
 
 It has been shown that the gradual unfreeze of BERT layers can lead to
@@ -289,7 +291,7 @@ Given the objects `(a_1, b_1, target_1), ..., (a_n, b_n, target_n)`, the collato
 The first batch corresponds to the original data, while the subsequent `exp_factor` - $1$ batches contain the objects
 `(a_i, b_s(i), 0)` for the first `exp_factor` - $1$ cyclic shifts `s`.
 
-The model is then trained on this data in a similar way to the standard training mode.
+The model is then trained on this data in a way similar to the standard training mode.
 The difference is that, instead of optimizing the loss on the original batch of objects,
 we optimize the weighted sum of losses on all batches in this list.
 In particular, a version of cosine loss can be optimized, while making sure that the classification
@@ -317,12 +319,12 @@ To make sure the task-specific layers of the model ('heads') are optimized at th
 the overall loss is the sum of triplet loss for embeddings and the task-specific loss functions
 for model's predictions. Namely, the final loss function to be optimized is a weighted sum of:
 
-- the triplet loss is applied to the embeddings of the three elements
+- the triplet loss applied to the embeddings of the three elements
 - the prediction loss for pairs (anchor, positive) with target 1
 - the prediction loss for pairs (anchor, negative) with target 0.
 
 The weight of the triplet loss in the final loss function, as well as the dropout rate of the collator,
-are hyperparemeters in this training method (see config options `triplet_weight`, `triplet_dropout_rates').
+are hyperparemeters in this training method (see config options `triplet_weight`, `triplet_dropout_rates`).
 
 ## Experiments
 
@@ -400,7 +402,7 @@ In the end, it produced the best results.
 ### Alternative training methods [Georgy Belousov]
 
 Using the multiple negative ranking loss improved results in the paraphrase detection task, however, it impacted
-the results on the `STS` task negatively. (See, in particular, the 'MNRL' row in the results table below.)
+the results on the `STS` task negatively. (See, in particular, the 'Exhaust + MNRL' row in the results table below.)
 We found that the optimal value for the exp_factor parameter is 2; increasing it beyond that does not give
 any significant improvement, but greatly increases training time. The optimal value for the `contrastive_weight`
 parameter is 0.5.
@@ -418,8 +420,8 @@ data at training time.
 |--------------------------------|-------|-------|-------|
 | Pretrain                       | 0.387 | 0.699 | 0.261 |
 | Finetune                       | 0.498 | 0.708 | 0.376 |
-| MNRL | 0.467 | 0.791 | 0.338 |
-| Triplet | 0.483 | 0.686 | 0.115 |
+| Exhaust + MNRL                 | 0.467 | 0.791 | 0.338 |
+| Triplet                        | 0.483 | 0.686 | 0.115 |
 | Exhaust + unfreeze             | 0.496 | 0.758 | 0.558 |
 | Exhaust + unfreeze + scheduler | 0.497 | 0.769 | 0.514 |
 | Continuous                     | 0.498 | 0.733 | 0.516 |
