@@ -272,7 +272,7 @@ It was enhancing the performance, however Gradual unfreeze is working better.
 
 In addition to optimizing objective functions for the three tasks directly,
 we implement two alternative training methods, aiming to improve the quality
-of embeddings (e.g., the problem of 'anisotropy', see <https://aclanthology.org/D19-1006.pdf>).
+of embeddings (e.g., the problem of 'anisotropy', see [Ethayarajh K.](https://aclanthology.org/D19-1006.pdf).
 
 The alternative training methods can be turned on using the config option `train_mode`.
 
