@@ -397,10 +397,10 @@ Another approach is to first pretrain the model on `Quora` and then use our regu
 That approach appeared to train on `SST` and `STS` datasets while preserving the quality on `Quora`.
 In the end, it produced the best results.
 
-### Alternative training methods[Georgy Belousov]
+### Alternative training methods [Georgy Belousov]
 
 Using the multiple negative ranking loss improved results in the paraphrase detection task, however, it impacted
-the results on the `STS` task negatively. (See, in particular, the 'MNRL' row in the results table below)
+the results on the `STS` task negatively. (See, in particular, the 'MNRL' row in the results table below.)
 We found that the optimal value for the exp_factor parameter is 2; increasing it beyond that does not give
 any significant improvement, but greatly increases training time. The optimal value for the `contrastive_weight`
 parameter is 0.5.
