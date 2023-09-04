@@ -1,6 +1,19 @@
 # DNLP SS23 Final Project - Multitask BERT
 
-Team: G04 Semantic Foxes
+**Team: G04 Semantic Foxes**
+
+Developed by:
+
+- Sergei Zakharov
+- Danila Litskevich
+- Georgy Belousov
+
+> **Disclaimer**
+>
+> We found out that the Quora dataset contains `None`-s. We dropped those
+> at the training stage wherever we could find those and signed `0` to them
+> as the final predictions (since `None` string is obviously not a paraphrase
+> of anything).
 
 ## Acknowledgements
 
@@ -87,9 +100,9 @@ Using a movie review sentence, predict the movie's sentiment, which can be one o
 
 This is a multi-label classification problem. The pre-split data is available in:
 
-- `data/ids-sst-train.csv` (Training set, 8544 entries)
-- `data/ids-sst-dev.csv` (Validation set, 1101 entries)
-- `data/ids-sst-test-student.csv` (Test set, 2210 entries)
+- `data/ids-sst-train.csv` (Training set)
+- `data/ids-sst-dev.csv` (Validation set)
+- `data/ids-sst-test-student.csv` (Test set)
 
 The metric to test this dataset is accuracy.
 
@@ -97,9 +110,9 @@ The metric to test this dataset is accuracy.
 
 The Quora dataset consists of pairs of questions, labeled to indicate if the questions are paraphrases of one another. This is a binary classification problem. The pre-split data is available in:
 
-- `data/quora-train.csv` (Training set, 141506 entries)
-- `data/quora-dev.csv` (Validation set, 20215 entries)
-- `data/quora-test-student.csv` (Test set, 40431 entries)
+- `data/quora-train.csv` (Training set)
+- `data/quora-dev.csv` (Validation set)
+- `data/quora-test-student.csv` (Test set)
 
 The metric to test this dataset is accuracy.
 
@@ -107,9 +120,9 @@ The metric to test this dataset is accuracy.
 
 This dataset provides pairs of sentences and scores reflecting the similarity between each pair. As its structure is close to the Quora dataset, they share the same `dataset` class. The pre-split data is available in:
 
-- `data/sts-train.csv` (Training set, 6041 entries)
-- `data/sts-dev.csv` (Validation set, 864 entries)
-- `data/sts-test-student.csv` (Test set, 1726 entries)
+- `data/sts-train.csv` (Training set)
+- `data/sts-dev.csv` (Validation set)
+- `data/sts-test-student.csv` (Test set)
 
 The metric to test this dataset is Pearson correlation.
 
@@ -186,6 +199,9 @@ We ended up not using this feature much since it takes a lot of time
 made sure that `lr` around `1e-5` is actually the optimal one in case we
 talk about using not a completely frozen BERT.
 
+The same appeared to be true for the `dropout_rate`: when we made those greater
+than `0.1`, the model's metrics usually went down.
+
 ### "Dilated" batches [Sergei Zakharov]
 
 When we started exploring the data provided, we realized that the `Quora`
@@ -205,7 +221,8 @@ the number of these forward passes done before the optimizer step is done.
 
 This feature was implemented relatively early since we have the common
 BERT core and want it to train on all the tasks rather than just on the `Quora`.
-Hence, most of our runs shared this mode.
+Hence, most of our runs shared this mode. The final model, however, uses the
+`continuous` mode.
 
 ### [WandB](wandb.ai) logging [Sergei Zakharov]
 
@@ -270,7 +287,7 @@ That behaviour is controlled by `freeze_bert_steps`.
 
 It was enhancing the performance, however Gradual unfreeze is working better.
 
-### Alternative training methods
+### Alternative training methods [Georgy Belousov]
 
 In addition to optimizing objective functions for the three tasks directly,
 we implement two alternative training methods, aiming to improve the quality
@@ -337,6 +354,10 @@ are hyperparemeters in this training method (see config options `triplet_weight`
 > final model may not be fully replicable. Nevertheless, we are sure that
 > the underlying general ideas, such as the "increasing dropout usually makes
 > things worse", are still reliable and can be used in the future.
+> 
+> The descriptions do not represent all the experiments run rather than
+> the most successful and interesting ones we could remember on the road to
+> building the final model. In reality, there were much more of these.
 
 ### Common knowledge
 
@@ -463,16 +484,32 @@ Configuration file: `config.yaml`.
 
 To train the model, first run `pretrain_quora.py`, after that run `run_train.py`.
 
+## Further development
+We have several ideas we did not have enough time to implement and test
+robustly:
+
+- Try the triangular scheduler from the ULMFit article;
+- Try increasing the number of BERT layers. Since it is not possible to
+use a bigger model by the rules, we thought we could use the mean of the
+existing layers and add a Xavier initialization to make the weights "somewhat"
+realistic. These "new" layers should be inserted on top of the existing ones and
+should be heavily finetuned just like we finetune the heads.
+
+It appears that it is not really worth it to use any "general" datasets
+since we already use a pretrained BERT. However, it might be a good idea
+to use specific datasets for each of the tasks to pretrain the heads as well.
+
 ## Codebase Overview
 
-The repository has undergone significant changes. Here's a brief overview:
+The repository has undergone significant changes Sergei started and we continued as a team.
+Here's a brief overview of the final structure:
 
 - `configs`: Contains config files for training.
 - `src`: Contains shared code, further divided into:
   - `core`: Holds functions common to models like the training loop and prediction generation alongside with the unfreezer.
   - `datasets`: Houses all dataset classes. `SSTDataset` is for the SST task, while `SentenceSimilarityDataset` serves both Quora and SemEval datasets. Also includes the implementation of custom collators.
   - `models`: Includes all model classes, subdivided into:
-    - `base_bert`: Non-maintained foundational class for BERT.
+    - `base_bert`: Non-maintained base class for BERT.
     - `bert`: Generates embeddings for input.
     - `classifier`: Multi-label classifier for the SST task.
     - `multitask_classifier`: Used for the second task. Has a shared BERT core and task-specific "heads".
