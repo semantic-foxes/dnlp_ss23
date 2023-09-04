@@ -67,6 +67,11 @@ post-train:
   skip_optimizer_step: 1
 
 predict:
-  sst_prediction_path: 'predictions/sst_prediction.csv'
-  quora_prediction_path: 'predictions/quora_prediction.csv'
-  sts_prediction_path: 'predictions/sts_prediction.csv'
+  val:
+    sst_prediction_path: 'predictions/val_sst_prediction.csv'
+    quora_prediction_path: 'predictions/val_quora_prediction.csv'
+    sts_prediction_path: 'predictions/val_sts_prediction.csv'
+  test:
+    sst_prediction_path: 'predictions/test_sst_prediction.csv'
+    quora_prediction_path: 'predictions/test_quora_prediction.csv'
+    sts_prediction_path: 'predictions/test_sts_prediction.csv'
