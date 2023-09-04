@@ -19,13 +19,13 @@ The project is developed in Python 3.8.
 
 - Follow `setup_gwdg.sh` to properly setup a conda environment and install dependencies.
 
-```python
+```bash
 source setup_gwdg.sh
 ```
 
 - Alternatively, to install necessary dependencies, run:
 
-```python
+```bash
 pip3 install -r requirements.txt
 ```
 
@@ -39,31 +39,34 @@ The `config.yaml` file streamlines workflow by centralizing the model's paramete
 
 - For Multiple Task Training, run:
 
-```python
+```bash
 python3 run_train.py
-```
-
-- For generating prediction, run:
-
-```python
-python3 generate_predictions.py
 ```
 
 - For pretraining on `Quora`, run:
 
-```python
+```bash
 python3 pretrain_quora.py
+```
+
+To train the model we used, first run `pretrain_quora.py`,
+then run `run_train.py`.
+
+- For generating prediction, run:
+
+```bash
+python3 generate_predictions.py
 ```
 
 - For hyperparameter search, run:
 
-```python
+```bash
 python3 hyperparameter_search.py
 ```
 
 - For Tests, run:
 
-```python
+```bash
 python3 -m tests.optimizer_test
 python3 -m tests.sanity_check
 ```
@@ -116,12 +119,12 @@ The metric to test this dataset is Pearson correlation.
 
 We used an unmodified (in terms of number of layers, etc.) BERT from huggingface (`bert-base-uncased`).
 
-### Multitask trainig stategy
+### Multitask training stategy
 
 Since 3 datasets have different amount of data, we can combine them differently for training purposes.
 There are several options for `dataloader_mode`:
 
-- `sequential` - traverse the whole dataset one after another (good for training with freezed BERT)
+- `sequential` - traverse the whole dataset one after another (good for training with frozen BERT)
 - `continuos` - 'infinitely' iterate over datasets (one epoch is determined by the minimal length of datasets)
 - `exhaust` - choose batch randomly without replacements
 
@@ -137,7 +140,7 @@ Since there is an ambiguity how one can compare `3` metrics simultaneously, we d
 
 ### Loss Functions
 
-By default we are using the following losses:
+By default, we are using the following losses:
 
 - `CrossEntropyLoss` - `SST` and `Quora`
 - `MSELoss` - `STS`
@@ -256,7 +259,7 @@ Multi-batch approach turned out to preserve same good performance for `Quora` du
 
 ### [`CosineEmbeddingsLoss`](https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html) [Danila Litskevich]
 
-`CosineEmbeddingsLoss` can be applied only to `Quora` for futher regularization.
+`CosineEmbeddingsLoss` can be applied only to `Quora` for further regularization.
 
 ### Mix freeze/unfreeze steps [Danila Litskevich]
 
@@ -313,10 +316,20 @@ for model's predictions. Namely, the final loss function to be optimized is a we
 
 ## Experiments
 
+> **Disclaimer**
+> 
+> While working of this project, we faced challenges related to
+> the project's substantial scale and the frequent changes to its features.
+> These factors made it really difficult to establish a stable
+> experimental setup. For this reason, some results other than those for the
+> final model may not be fully replicable. Nevertheless, we are sure that
+> the underlying general ideas, such as the "increasing dropout usually makes
+> things worse", are still reliable and can be used in the future.
+
 ### Common knowledge
 
-- We generally used `lr` around `1e-5` and `dropout=0.1` since these proved to be
-generally the best.
+- We generally used `lr` around `1e-5` and `dropout=0.1` since these proved to
+generally be the best.
 - Once we made it to the more complex heads for SST and STS datasets, we started using them,
 so there are no experiments with simple heads.
 
@@ -377,13 +390,14 @@ In the end, it produced the best results.
 
 ## Results
 
-| Model | SST | Quora | STS |
-|---|---|---|---|
-| Pretrain | 0.387 | 0.699 | 0.261 |
-| Finetune | 0.498 | 0.708 | 0.376 |
-| Exhaust | 0. | 0. | 0. |
-| Continuous | 0.498 | 0.733 | 0.516 |
-| Continuous<sub>Quora</sub> | 0.495 | 0.773 | 0.575 |
+| Model                          | SST   | Quora | STS   |
+|--------------------------------|-------|-------|-------|
+| Pretrain                       | 0.387 | 0.699 | 0.261 |
+| Finetune                       | 0.498 | 0.708 | 0.376 |
+| Exhaust + unfreeze             | 0.496 | 0.758 | 0.558 |
+| Exhaust + unfreeze + scheduler | 0.497 | 0.769 | 0.514 |
+| Continuous                     | 0.498 | 0.733 | 0.516 |
+| Continuous<sub>Quora</sub>     | 0.495 | 0.773 | 0.575 |
 
 ### Pretrain model
 
@@ -397,9 +411,13 @@ Same approach as for Pretrain model, but now BERT weights are not frozen.
 
 Configuration file: `configs/finetune-config.yaml`.
 
-### Exhaust model
+### Exhaust + unfreeze model
 
-The model that utilize `exhaust` mode.
+See above in the experiments.
+
+### Exhaust + unfreeze + scheduler model
+
+See above in the experiments.
 
 ### Continuous model
 
@@ -423,7 +441,7 @@ The repository has undergone significant changes. Here's a brief overview:
 
 - `configs`: Contains config files for training.
 - `src`: Contains shared code, further divided into:
-  - `core`: Holds functions common to models like the training loop and prediction generation.
+  - `core`: Holds functions common to models like the training loop and prediction generation alongside with the unfreezer.
   - `datasets`: Houses all dataset classes. `SSTDataset` is for the SST task, while `SentenceSimilarityDataset` serves both Quora and SemEval datasets.
   - `models`: Includes all model classes, subdivided into:
     - `base_bert`: Non-maintained foundational class for BERT.
@@ -433,12 +451,12 @@ The repository has undergone significant changes. Here's a brief overview:
   - `optim`: Contains our `AdamW` optimizer implementation.
   - `utils`: Features utility functions and logger settings. Import `logger` from this module to log events. The `utils.py` is third-party and not maintained by us, while `model_utils` is our contribution.
   
-- `tests`: Contains various test scripts. To run:
-  1. Add `src` to the `PYTHONPATH`.
-  2. Execute:
+- `tests`: Contains various test scripts.
+- `generate_predictions.py`: Generates predictions from the saved model (path to the model is determined in the `config.yaml` as `checkpoint_path`).
+- `hyperparameter_search.py`: Searches for the hyperparameters based on the `config.yaml` and `configs/hyperparameter_config.yaml`.
+- `pretrain_quora.py`: Pretrains the model on Quora dataset.
+- `run_train.py`: Runs the train/evaluation sequence.
 
-    ```python
-    python3 tests/<test_filename>
-    ```
+And some other helper files like all the `.sh` ones.
 
 **All the commands are to be run from the project root.**
