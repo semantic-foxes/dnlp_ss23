@@ -383,7 +383,7 @@ In the end, it produced the best results.
 | Finetune | 0.498 | 0.708 | 0.376 |
 | Exhaust | 0. | 0. | 0. |
 | Continuous | 0.498 | 0.733 | 0.516 |
-| Continuous<sub>Quora</sub> | 0.500 | 0.771 | 0.592 |
+| Continuous<sub>Quora</sub> | 0.495 | 0.773 | 0.575 |
 
 ### Pretrain model
 
